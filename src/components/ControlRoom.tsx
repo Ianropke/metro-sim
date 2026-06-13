@@ -143,7 +143,11 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
     const addToast = useCallback((toast: Toast) => {
         setToasts(prev => {
             if (prev.find(t => t.id === toast.id)) return prev;
-            return [...prev, toast];
+            const updated = [...prev, toast];
+            if (updated.length > 3) {
+                return updated.slice(updated.length - 3);
+            }
+            return updated;
         });
     }, []);
 
@@ -163,20 +167,35 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                         changed = true;
                     }
                 });
-                return changed ? updated.sort((a, b) => b.timestamp - a.timestamp) : prev;
+                let sorted = changed ? updated.sort((a, b) => b.timestamp - a.timestamp) : prev;
+                if (sorted.length > 100) {
+                    sorted = sorted.slice(0, 100);
+                }
+                return sorted;
             });
 
             const latestEvent = game.events[game.events.length - 1];
             if (lastEventIdRef.current !== latestEvent.id) {
                 lastEventIdRef.current = latestEvent.id;
-                setTimeout(() => {
-                    addToast({
-                        id: latestEvent.id,
-                        type: latestEvent.type === 'FAILURE' ? 'ERROR' : 'INFO',
-                        title: latestEvent.name || 'Event',
-                        message: latestEvent.description
-                    });
-                }, 0);
+                
+                // Only show toast notifications for high-priority/impact events to avoid flooding the screen
+                const isHighPriority = latestEvent.type === 'FAILURE' || 
+                                       latestEvent.name === 'FORSKNING' || 
+                                       latestEvent.name === 'Train Dispatched' || 
+                                       latestEvent.name === 'Morning Rush' ||
+                                       latestEvent.name === 'NØDSTOP' ||
+                                       latestEvent.name === 'TUTORIAL';
+                                       
+                if (isHighPriority) {
+                    setTimeout(() => {
+                        addToast({
+                            id: latestEvent.id,
+                            type: latestEvent.type === 'FAILURE' ? 'ERROR' : 'INFO',
+                            title: latestEvent.name || 'Hændelse',
+                            message: latestEvent.description
+                        });
+                    }, 0);
+                }
             }
         }
     }, [game.events, addToast]);
@@ -246,20 +265,20 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             {/* 2. HUD - Top Bar (Tycoon Style) */}
             <div className="absolute top-0 left-0 w-full p-4 z-10 pointer-events-none flex justify-between items-start">
                 {/* Left: Game Info & Objectives */}
-                <div className="flex flex-col gap-3 pointer-events-auto">
-                    <div className="bg-slate-900/90 backdrop-blur-md p-3 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-1">
-                        <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                            METRO <span className="text-blue-500">TYCOON</span>
-                        </h1>
-                        <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                            LIVE OPERATIONS
+                <div className="flex flex-col gap-2.5 pointer-events-auto">
+                    {/* Combined Header & Mission Panel */}
+                    <div className="bg-slate-900/90 backdrop-blur-md p-3.5 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-2 w-64 text-xs animate-in slide-in-from-left duration-300">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-1">
+                            <h1 className="text-base font-black text-white tracking-tight">
+                                METRO <span className="text-blue-500">TYCOON</span>
+                            </h1>
+                            <div className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 font-bold">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                LIVE
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Mission panel */}
-                    <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-2 w-64 text-xs animate-in slide-in-from-left duration-300">
-                        <div className="font-bold text-blue-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                        <div className="font-bold text-blue-400 uppercase tracking-wider mb-0.5 flex items-center gap-1.5">
                             🎯 OPGAVE / MISSION
                         </div>
                         {(game.tutorialStep ?? 0) === 0 && (
@@ -606,17 +625,20 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                 </div>
             </div>
 
-            {/* 3. Toast Layer */}
-            <ToastContainer toasts={toasts} onRemove={removeToast} />
-
-            {/* 4. Advisor Layer */}
-            <Advisor message={advisorMessage} type={advisorType} />
+            {/* 3. Unified Notification Center (Toasts & Advisor) */}
+            <div className={`
+                fixed bottom-6 z-50 flex flex-col-reverse gap-3 items-end pointer-events-none max-w-sm w-full transition-all duration-300
+                ${showLog ? 'right-[340px]' : 'right-4'}
+            `}>
+                <Advisor message={advisorMessage} type={advisorType} />
+                <ToastContainer toasts={toasts} onRemove={removeToast} />
+            </div>
 
             {/* 5. Main Content Area / Floating Panels */}
             {selectedTrain && (() => {
                 const isSpawnBlocked = trains.some(t => t.state !== 'DEPOT' && t.position < 300);
                 return (
-                    <div className="absolute top-24 left-4 z-30 pointer-events-auto">
+                    <div className="absolute top-24 left-[288px] z-30 pointer-events-auto">
                         <TrainDetails
                             train={selectedTrain}
                             onClose={() => setSelectedTrainId(null)}

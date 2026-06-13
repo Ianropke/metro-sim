@@ -62,11 +62,10 @@ export const Advisor: React.FC<AdvisorProps> = ({ message, type = 'TIP' }) => {
 
     return (
         <div className={`
-            fixed bottom-32 left-8 z-50 max-w-sm w-full
-            transition-all duration-500 transform
+            w-full transition-all duration-500 transform
             ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none'}
         `}>
-            <div className={`relative p-4 rounded-2xl rounded-bl-none shadow-2xl border-2 flex gap-4 items-start transition-all duration-300 ${currentStyle.bubbleBg} ${currentStyle.border}`}>
+            <div className={`relative p-4 rounded-2xl rounded-br-none shadow-2xl border-2 flex gap-4 items-start transition-all duration-300 ${currentStyle.bubbleBg} ${currentStyle.border}`}>
                 {/* Vector Icon Box */}
                 <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center shrink-0 ${currentStyle.avatarBg}`}>
                     {currentStyle.icon}
@@ -89,7 +88,7 @@ export const Advisor: React.FC<AdvisorProps> = ({ message, type = 'TIP' }) => {
                 </button>
 
                 {/* Speech Bubble Tail */}
-                <div className={`absolute -bottom-2 left-0 w-4 h-4 transform rotate-45 translate-x-4 ${currentStyle.tailBg} ${currentStyle.tailBorder}`}></div>
+                <div className={`absolute -bottom-2 right-6 w-4 h-4 transform rotate-45 ${currentStyle.tailBg} ${currentStyle.tailBorder}`}></div>
             </div>
         </div>
     );
