@@ -284,52 +284,52 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                         {(game.tutorialStep ?? 0) === 0 && (
                             <div className="flex flex-col gap-1.5">
                                 <div className="text-slate-200 font-bold">Fase 0: Kom i gang</div>
-                                <div className="text-slate-400 leading-normal">TRN01 kører på linjen. Vent på, at det ankommer til Flintholm, afleverer passagerer og tjener penge.</div>
-                                <div className="flex items-center gap-2 mt-1 text-[10px] text-amber-400 font-bold bg-amber-950/30 px-2 py-1 rounded border border-amber-500/20">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></div>
-                                    AFVENTER PASSAGERER...
+                                <div className="text-slate-400 leading-normal mb-1">TRN01 kører på linjen. Vent på, at det ankommer til Flintholm, afleverer passagerer og tjener penge.</div>
+                                <div className="flex items-center gap-2 text-[11px] font-semibold text-amber-400/90 font-mono">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></div>
+                                    <span>☐ Afventer passageraflevering...</span>
                                 </div>
                             </div>
                         )}
                         {game.tutorialStep === 1 && (
                             <div className="flex flex-col gap-1.5">
                                 <div className="text-rose-400 font-bold">Fase 1: Udbedr fejl!</div>
-                                <div className="text-slate-400 leading-normal">Dørene på TRN01 har en kritisk fejl. Klik på <span className="font-bold text-rose-400">SEND STEWARD</span> i alarmpanelet til højre for at udbedre fejlen.</div>
-                                <div className="flex items-center gap-2 mt-1 text-[10px] text-rose-400 font-bold bg-rose-950/30 px-2 py-1 rounded border border-rose-500/20">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></div>
-                                    REPARER TRN01 DØRFEJL
+                                <div className="text-slate-400 leading-normal mb-1">Dørene på TRN01 har en kritisk fejl. Klik på <span className="font-bold text-rose-400">SEND STEWARD</span> i alarmpanelet til højre for at udbedre fejlen.</div>
+                                <div className="flex items-center gap-2 text-[11px] font-semibold text-rose-400 font-mono">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                                    <span>☐ Udsend steward til TRN01 (Højre side)</span>
                                 </div>
                             </div>
                         )}
                         {game.tutorialStep === 2 && (
                             <div className="flex flex-col gap-1.5">
                                 <div className="text-blue-400 font-bold">Fase 2: Udvid flåden</div>
-                                <div className="text-slate-400 leading-normal">Driften skal udvides! Åbn <span className="font-bold text-blue-400">SHOP-knappen</span> i bunden, og køb et nyt tog (<span className="font-bold text-emerald-450">Buy New Train</span>) for $8.000.</div>
-                                <div className="flex items-center gap-2 mt-1 text-[10px] text-blue-450 font-bold bg-blue-950/30 px-2 py-1 rounded border border-blue-500/20">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></div>
-                                    KØB NYT TOG I SHOP
+                                <div className="text-slate-400 leading-normal mb-1">Driften skal udvides! Åbn <span className="font-bold text-blue-400">BUTIK-knappen</span> i bunden, og køb et nyt tog (<span className="font-bold text-emerald-450">Buy New Train</span>) for $8.000.</div>
+                                <div className="flex items-center gap-2 text-[11px] font-semibold text-blue-400 font-mono">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                                    <span>☐ Køb nyt tog i BUTIK (Bund)</span>
                                 </div>
                             </div>
                         )}
                         {(game.tutorialStep ?? 0) >= 3 && (
                             <div className="flex flex-col gap-1.5">
                                 <div className="text-emerald-400 font-bold">Fase 3: Fri leg (Mål)</div>
-                                <div className="flex flex-col gap-1.5 text-slate-300">
-                                    <div className="flex justify-between items-center border-b border-slate-800 pb-1">
-                                        <span>• Nørreport rute</span>
+                                <div className="flex flex-col gap-1.5 text-[11px] font-mono">
+                                    <div className="flex justify-between items-center border-b border-slate-800 pb-1 text-slate-300">
+                                        <span>{game.activeUpgrades?.has('ROUTE_EXTENSION_1') ? '☒' : '☐'} 1. Nørreport rute</span>
                                         <span className={game.activeUpgrades?.has('ROUTE_EXTENSION_1') ? 'text-emerald-400 font-bold' : 'text-slate-500 font-bold'}>
                                             {game.activeUpgrades?.has('ROUTE_EXTENSION_1') ? '✓ KLAR' : 'MANGLER'}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between items-center border-b border-slate-800 pb-1">
-                                        <span>• Transporter pax</span>
-                                        <span className={(game.totalPassengersTransported || 0) >= 5000 ? 'text-emerald-400 font-bold' : 'text-slate-300 font-bold font-mono'}>
+                                    <div className="flex justify-between items-center border-b border-slate-800 pb-1 text-slate-300">
+                                        <span>{(game.totalPassengersTransported || 0) >= 5000 ? '☒' : '☐'} 2. Transporter pax</span>
+                                        <span className={(game.totalPassengersTransported || 0) >= 5000 ? 'text-emerald-400 font-bold' : 'text-slate-350 font-bold'}>
                                             {Math.floor(game.totalPassengersTransported || 0)}/5.000
                                         </span>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span>• Tilfredshed ≥ 80%</span>
-                                        <span className={game.satisfaction >= 80 ? 'text-emerald-400 font-bold font-mono' : 'text-rose-400 font-bold font-mono'}>
+                                    <div className="flex justify-between items-center text-slate-300">
+                                        <span>{game.satisfaction >= 80 ? '☒' : '☐'} 3. Tilfredshed ≥ 80%</span>
+                                        <span className={game.satisfaction >= 80 ? 'text-emerald-400 font-bold' : 'text-rose-450 font-bold'}>
                                             {Math.round(game.satisfaction)}%
                                         </span>
                                     </div>
