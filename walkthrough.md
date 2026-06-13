@@ -128,7 +128,7 @@ For at rydde op i brugerfladen og forhindre overlappende elementer (især på mi
 
 ## 10. UI/UX Refaktorering & 4-Zone Grid Layout
 
-Vi har udført en komplet arkitektonisk og visuel refaktorering af brugerfladen for at løse problemer med renderingsoverlap, inkonsistent modalplacering og z-index konflikter:
+Vi har udført en komplet arkitektonisk og visuel refaktorering af brugerfladen for at løse problemer med renderingsoverlap, inkonsistent modalplacering, z-index konflikter og alarmredundans:
 
 ### 4-Zone CSS Grid layout
 Hovedbrugerfladen i [ControlRoom.tsx](file:///Users/ianropke/.gemini/antigravity/scratch/metro-sim/src/components/ControlRoom.tsx) er genopbygget med et robust 3x3 CSS Grid (`grid-cols-[280px_1fr_280px] grid-rows-[auto_1fr_auto]`), som låser alle paneler fast i deres respektive zoner:
@@ -137,6 +137,22 @@ Hovedbrugerfladen i [ControlRoom.tsx](file:///Users/ianropke/.gemini/antigravity
 *   **Højre Panel (Drift Zone):** Viser flådestatus og live "Alarmer & Fejl" med direkte knapper til udsendelse af stewards.
 *   **Dock (Bund Zone):** Indeholder de primære strategiske handlinger (BUTIK, DATA, MYLDRETID, NØDSTOP) centreret i bunden.
 *   **Pointer Events styring:** Canvas-spillekortet og DOM-UI'et er fuldstændigt adskilt. Ved at anvende `pointer-events-none` på grid-containeren og `pointer-events-auto` på de enkelte interaktive paneler, kan spilleren uforstyrret interagere med togene på kortet.
+
+### Eliminering af redundans & alarmtræthed
+Vi har fjernet de overlappende, redundante advarsler for at beskytte spillerens opmærksomhed:
+*   **Fjernelse af System Advarsel:** Den store, røde taleboble-advarsel i bunden (`Advisor` med type `WARNING`) er helt fjernet.
+*   **Ren alarm-routing:** Actionable fejl (som udbedring af togfejl) routes nu *kun* til højre panel ("Alarmer & Fejl").
+*   **Mål-routing:** Venstre panel viser kun spillets overordnede mål og tutorial-trin uden forklarende instruktioner om alarmknapper.
+*   **Hændelses-routing:** Mindre systembeskeder sendes som diskrete toasts, der forsvinder automatisk.
+
+### Glassmorphism & Kompakt Data (Visuel Overhaling)
+Panelerne har fået et futuristisk dashboard-udseende inspireret af professionelle dataværktøjer:
+*   **Glassmorphic paneler:** Panelerne og HUD-boblerne bruger nu en semi-transparent baggrund med et kraftigt sløringsfilter (`backdrop-filter: blur(12px)`) og en tynd lys grænse (`border: 1px solid rgba(255, 255, 255, 0.1)`). Dette tillader, at metrokortets linjer anes bagved panelerne og udvider skærmens visuelle dybde.
+*   **Kompakt layout:** Padding og spalteafstænde er minimeret, og personaledata er yderligere forkortet (f.eks. `Stewards: 1/1` i stedet for `Stewards: 1 / 1 ledige`, samt `Analytikere: X` og `Uddannelse: Lvl Y`).
+
+### Mikro-interaktioner (Pulserende alarmknapper)
+For at fange spillerens øjne instinktivt uden at anvende forstyrrende tekstbeskeder:
+*   **Pulserende fejlknapper:** Når der opstår en kritisk fejl (Nedbrud), begynder `SEND STEWARD`-knappen i højre panel at pulse glødende rødt ved hjælp af en CSS-nøgleanimation (`animate-pulse-error`), som gradvist skifter baggrundsfarve og spreder en blød skyggeudstråling udad.
 
 ### Eliminering af overlap (TopologicalMap.tsx)
 For at sikre, at togene ikke tegnes oveni stationsteksterne på driftskortet, har vi udført en koordinatforskydning i [TopologicalMap.tsx](file:///Users/ianropke/.gemini/antigravity/scratch/metro-sim/src/components/TopologicalMap.tsx):
@@ -151,3 +167,4 @@ For at sikre, at popups og modaler ikke blandes sammen, har vi defineret et stra
 *   `z-500`: Advarsler (`Advisor`) og Toasts (notifikationer).
 *   `z-900`: Beskedhistorik-skuffen (`showLog`).
 *   `z-1000`: Fuldskærmsmodaler som `UpgradeShop`, `DataDashboard` og `EndGameModal` (konkurs/sejr-skærme).
+

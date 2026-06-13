@@ -206,15 +206,13 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
     let advisorMessage = "";
     let advisorType: 'TUTORIAL' | 'WARNING' | 'TIP' = 'TUTORIAL';
 
-    const activeAnomalies = anomalies.filter(a => a.severity > 0);
-
     // Prioritize Tutorial Steps first
     if (game.tutorialStep === 0) {
         advisorMessage = "Velkommen, Direktør! Driften er i gang, og TRN01 kører på linjen. Vent på, at toget samler sine første passagerer op og tjener penge.";
         advisorType = 'TUTORIAL';
     } else if (game.tutorialStep === 1) {
-        advisorMessage = "Hov, der er opstået en kritisk dørfejl på TRN01! Klik på 'SEND STEWARD' i alarmpanelet til højre for at udbedre fejlen.";
-        advisorType = 'WARNING';
+        advisorMessage = ""; // Ingen advarsel her. Detaljer vises i venstre panel og den pulserende alarmknap i højre panel.
+        advisorType = 'TUTORIAL';
     } else if (game.tutorialStep === 2) {
         advisorMessage = "Flot arbejde! Toget kører igen. Nu hvor du har tjent nogle penge, kan du åbne SHOP-fanen og købe et nyt tog (Buy New Train) for at udvide driften.";
         advisorType = 'TUTORIAL';
@@ -232,9 +230,6 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
         } else if (selectedTrain) {
             advisorMessage = "Tog valgt! Se detaljer til venstre. Du kan aktivere 'Manuel styring' (Manual Override) for selv at styre toget!";
             advisorType = 'TUTORIAL';
-        } else if (activeAnomalies.length > 0) {
-            advisorMessage = `Kritisk fejl på ${activeAnomalies[0].trainId} (${activeAnomalies[0].component})! Klik på 'SEND STEWARD' i alarmpanelet til højre!`;
-            advisorType = 'WARNING';
         } else if (game.satisfaction < 50) {
             advisorMessage = "Passagererne er utilfredse! Køb flere tog og deploy dem for at mindske ventetiden.";
             advisorType = 'TIP';
@@ -269,95 +264,97 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                 <div className="col-start-1 pointer-events-none"></div>
 
                 {/* Center: Stat Bubbles */}
+
                 <div className="col-start-2 justify-self-center flex gap-4 pointer-events-auto">
                     {/* Clock Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-4 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-emerald-500 cursor-help">
+                    <div className="group relative glass-panel pl-4 pr-6 py-1 rounded-full border border-white/10 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-emerald-500/50 cursor-help">
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider text-center">Tid</span>
-                            <span className="text-xl font-black font-mono text-emerald-400">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider text-center">Tid</span>
+                            <span className="text-lg font-black font-mono text-emerald-400">
                                 {Math.floor(game.timeOfDay / 3600).toString().padStart(2, '0')}:
                                 {Math.floor((game.timeOfDay % 3600) / 60).toString().padStart(2, '0')}
                             </span>
                         </div>
                         {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-950/95 border border-white/10 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
                             <div className="font-bold text-emerald-400 mb-1">⏰ KLOKKESLÆT</div>
                             Klokkeslæt i simulationen. Driften kører i døgndrift. Tiden går hurtigere end i virkeligheden.
                         </div>
                     </div>
 
                     {/* Budget Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-emerald-500 cursor-help">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
-                            <DollarSign size={20} strokeWidth={3} />
+                    <div className="group relative glass-panel pl-3 pr-6 py-1.5 rounded-full border border-white/10 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-emerald-500/50 cursor-help">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 shrink-0">
+                            <DollarSign size={16} strokeWidth={3} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Budget</span>
-                            <span className={`text-xl font-black font-mono ${game.budget < 0 ? 'text-rose-400' : 'text-white'}`}>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Budget</span>
+                            <span className={`text-lg font-black font-mono ${game.budget < 0 ? 'text-rose-450' : 'text-white'}`}>
                                 ${game.budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                             </span>
                         </div>
                         {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-950/95 border border-white/10 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
                             <div className="font-bold text-emerald-400 mb-1">💵 DRIFTSBUDGET</div>
                             Dit nuværende budget. Tjen penge ved at transportere passagerer. Hvis budgettet rammer <span className="text-rose-400 font-bold">-$5.000</span>, går du konkurs!
                         </div>
                     </div>
 
                     {/* Satisfaction Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-blue-500 cursor-help">
-                        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                            <Smile size={20} strokeWidth={3} />
+                    <div className="group relative glass-panel pl-3 pr-6 py-1.5 rounded-full border border-white/10 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-blue-500/50 cursor-help">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 shrink-0">
+                            <Smile size={16} strokeWidth={3} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Tilfredshed</span>
-                            <span className="text-xl font-black font-mono text-white">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tilfredshed</span>
+                            <span className="text-lg font-black font-mono text-white">
                                 {Math.round(game.satisfaction)}%
                             </span>
                         </div>
                         {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-950/95 border border-white/10 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
                             <div className="font-bold text-blue-400 mb-1">😊 PASSAGER-TILFREDSHED</div>
                             Gennemsnitlig tilfredshed. Falder gradvist hvis folk venter for længe på stationerne. Hvis den rammer <span className="text-rose-400 font-bold">0%</span>, bliver du fyret!
                         </div>
                     </div>
 
                     {/* Efficiency Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-amber-500 cursor-help">
-                        <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30">
-                            <TrendingUp size={20} strokeWidth={3} />
+                    <div className="group relative glass-panel pl-3 pr-6 py-1.5 rounded-full border border-white/10 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-amber-500/50 cursor-help">
+                        <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30 shrink-0">
+                            <TrendingUp size={16} strokeWidth={3} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Effektivitet</span>
-                            <span className="text-xl font-black font-mono text-white">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Effektivitet</span>
+                            <span className="text-lg font-black font-mono text-white">
                                 {game.efficiency.toFixed(0)}%
                             </span>
                         </div>
                         {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-950/95 border border-white/10 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
                             <div className="font-bold text-amber-400 mb-1">⚡ ENERGIEFFEKTIVITET</div>
                             Systemets energieffektivitet. Højere effektivitet reducerer løbende el-omkostninger. Kan forbedres via regenerativ bremsning i butikken.
                         </div>
                     </div>
                     
                     {/* Passengers Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-purple-500 cursor-help">
-                        <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
-                            <span className="font-bold">Px</span>
+                    <div className="group relative glass-panel pl-3 pr-6 py-1.5 rounded-full border border-white/10 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-purple-500/50 cursor-help">
+                        <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/30 shrink-0">
+                            <span className="text-[11px] font-black">Px</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Passagerer</span>
-                            <span className="text-xl font-black font-mono text-white">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Passagerer</span>
+                            <span className="text-lg font-black font-mono text-white">
                                 {Math.floor(game.totalPassengersTransported || 0).toLocaleString()}
                             </span>
                         </div>
                         {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-950/95 border border-white/10 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
                             <div className="font-bold text-purple-400 mb-1">👥 TOTAL TRANSPORTERET</div>
                             Det samlede antal passagerer bragt frem. Nå over <span className="text-purple-400 font-bold">5.000</span> passagerer og mindst <span className="text-blue-400 font-bold">80% tilfredshed</span> for at vinde!
                         </div>
                     </div>
                 </div>
+
 
                 {/* Right: Message Log Toggle */}
                 <div className="col-start-3 justify-self-end pointer-events-auto">
@@ -377,8 +374,8 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                 {/* Left Info Column (Row 2, Col 1) */}
                 <div className="col-start-1 row-start-2 flex flex-col gap-2.5 pointer-events-auto self-start">
                     {/* Combined Header & Mission Panel */}
-                    <div className="bg-slate-900/90 backdrop-blur-md p-3.5 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-2 w-64 text-xs animate-in slide-in-from-left duration-300">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-1">
+                    <div className="glass-panel p-3.5 rounded-2xl flex flex-col gap-1.5 w-64 text-xs animate-in slide-in-from-left duration-300">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-0.5">
                             <h1 className="text-base font-black text-white tracking-tight">
                                 METRO <span className="text-blue-500">TYCOON</span>
                             </h1>
@@ -388,58 +385,58 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                             </div>
                         </div>
 
-                        <div className="font-bold text-blue-400 uppercase tracking-wider mb-0.5 flex items-center gap-1.5">
+                        <div className="font-bold text-blue-400 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 text-[10px]">
                             🎯 OPGAVE / MISSION
                         </div>
                         {(game.tutorialStep ?? 0) === 0 && (
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-1">
                                 <div className="text-slate-200 font-bold">Fase 0: Kom i gang</div>
-                                <div className="text-slate-400 leading-normal mb-1">TRN01 kører på linjen. Vent på, at det ankommer til Flintholm, afleverer passagerer og tjener penge.</div>
-                                <div className="flex items-center gap-2 text-[11px] font-semibold text-amber-400/90 font-mono">
+                                <div className="text-slate-400 leading-relaxed mb-0.5">TRN01 kører på linjen. Vent på, at det ankommer til Flintholm og tjener penge.</div>
+                                <div className="flex items-center gap-2 text-[10px] font-semibold text-amber-450 font-mono">
                                     <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></div>
                                     <span>☐ Afventer passageraflevering...</span>
                                 </div>
                             </div>
                         )}
                         {game.tutorialStep === 1 && (
-                            <div className="flex flex-col gap-1.5">
-                                <div className="text-rose-400 font-bold">Fase 1: Udbedr fejl!</div>
-                                <div className="text-slate-400 leading-normal mb-1">Dørene på TRN01 har en kritisk fejl. Klik på <span className="font-bold text-rose-400">SEND STEWARD</span> i alarmpanelet til højre for at udbedre fejlen.</div>
-                                <div className="flex items-center gap-2 text-[11px] font-semibold text-rose-400 font-mono">
+                            <div className="flex flex-col gap-1">
+                                <div className="text-rose-450 font-bold">Fase 1: Udbedr fejl</div>
+                                <div className="text-slate-400 leading-relaxed mb-0.5">Dørene på TRN01 har en kritisk fejl. Udsend en steward fra alarmpanelet til højre.</div>
+                                <div className="flex items-center gap-2 text-[10px] font-semibold text-rose-400 font-mono">
                                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
-                                    <span>☐ Udsend steward til TRN01 (Højre side)</span>
+                                    <span>☐ Udsend steward til TRN01</span>
                                 </div>
                             </div>
                         )}
                         {game.tutorialStep === 2 && (
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-1">
                                 <div className="text-blue-400 font-bold">Fase 2: Udvid flåden</div>
-                                <div className="text-slate-400 leading-normal mb-1">Driften skal udvides! Åbn <span className="font-bold text-blue-400">BUTIK-knappen</span> i bunden, og køb et nyt tog (<span className="font-bold text-emerald-450">Buy New Train</span>) for $8.000.</div>
-                                <div className="flex items-center gap-2 text-[11px] font-semibold text-blue-400 font-mono">
+                                <div className="text-slate-400 leading-relaxed mb-0.5">Driften skal udvides! Åbn BUTIK-knappen i bunden, og køb et nyt tog ($8.000).</div>
+                                <div className="flex items-center gap-2 text-[10px] font-semibold text-blue-400 font-mono">
                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                                    <span>☐ Køb nyt tog i BUTIK (Bund)</span>
+                                    <span>☐ Køb nyt tog i BUTIK</span>
                                 </div>
                             </div>
                         )}
                         {(game.tutorialStep ?? 0) >= 3 && (
-                            <div className="flex flex-col gap-1.5">
-                                <div className="text-emerald-400 font-bold">Fase 3: Fri leg (Mål)</div>
-                                <div className="flex flex-col gap-1.5 text-[11px] font-mono">
-                                    <div className="flex justify-between items-center border-b border-slate-800 pb-1 text-slate-300">
+                            <div className="flex flex-col gap-1">
+                                <div className="text-emerald-400 font-bold mb-0.5">Fase 3: Fri leg (Mål)</div>
+                                <div className="flex flex-col gap-1 text-[10px] font-mono">
+                                    <div className="flex justify-between items-center border-b border-white/5 pb-1 text-slate-350">
                                         <span>{game.activeUpgrades?.has('ROUTE_EXTENSION_1') ? '☒' : '☐'} 1. Nørreport rute</span>
-                                        <span className={game.activeUpgrades?.has('ROUTE_EXTENSION_1') ? 'text-emerald-400 font-bold' : 'text-slate-500 font-bold'}>
+                                        <span className={game.activeUpgrades?.has('ROUTE_EXTENSION_1') ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
                                             {game.activeUpgrades?.has('ROUTE_EXTENSION_1') ? '✓ KLAR' : 'MANGLER'}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between items-center border-b border-slate-800 pb-1 text-slate-300">
+                                    <div className="flex justify-between items-center border-b border-white/5 pb-1 text-slate-350">
                                         <span>{(game.totalPassengersTransported || 0) >= 5000 ? '☒' : '☐'} 2. Transporter pax</span>
-                                        <span className={(game.totalPassengersTransported || 0) >= 5000 ? 'text-emerald-400 font-bold' : 'text-slate-350 font-bold'}>
+                                        <span className={(game.totalPassengersTransported || 0) >= 5000 ? 'text-emerald-400 font-bold' : 'text-slate-400'}>
                                             {Math.floor(game.totalPassengersTransported || 0)}/5.000
                                         </span>
                                     </div>
-                                    <div className="flex justify-between items-center text-slate-300">
+                                    <div className="flex justify-between items-center text-slate-355">
                                         <span>{game.satisfaction >= 80 ? '☒' : '☐'} 3. Tilfredshed ≥ 80%</span>
-                                        <span className={game.satisfaction >= 80 ? 'text-emerald-400 font-bold' : 'text-rose-450 font-bold'}>
+                                        <span className={game.satisfaction >= 80 ? 'text-emerald-400 font-bold' : 'text-rose-450'}>
                                             {Math.round(game.satisfaction)}%
                                         </span>
                                     </div>
@@ -449,62 +446,62 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                     </div>
 
                     {/* Personnel & Announcements Panel */}
-                    <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-2.5 w-64 text-xs animate-in slide-in-from-left duration-300">
-                        <div className="font-bold text-blue-400 uppercase tracking-wider mb-0.5 flex items-center gap-1.5">
+                    <div className="glass-panel p-3.5 rounded-2xl flex flex-col gap-1.5 w-64 text-xs animate-in slide-in-from-left duration-300">
+                        <div className="font-bold text-blue-400 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 text-[10px]">
                             👥 PERSONALE & INFO
                         </div>
-                        <div className="flex flex-col gap-1.5 text-slate-350">
-                            <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                        <div className="flex flex-col gap-1 text-slate-350">
+                            <div className="flex justify-between items-center border-b border-white/5 pb-1">
                                 <span>Stewards:</span>
                                 <span className="font-bold font-mono text-slate-200">
-                                    {game.stewardsCount - game.stewardsBusy} / {game.stewardsCount} ledige
+                                    {game.stewardsCount - game.stewardsBusy}/{game.stewardsCount}
                                 </span>
                             </div>
-                            <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
-                                <span>Dataanalytikere:</span>
+                            <div className="flex justify-between items-center border-b border-white/5 pb-1">
+                                <span>Analytikere:</span>
                                 <span className="font-bold font-mono text-slate-200">
-                                    {game.dataAnalystsCount} ansatte
+                                    {game.dataAnalystsCount}
                                 </span>
                             </div>
-                            <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                            <div className="flex justify-between items-center border-b border-white/5 pb-1">
                                 <span>Uddannelse:</span>
-                                <span className="font-bold text-slate-200">
-                                    {game.stewardTrainingLevel === 1 ? 'Lvl 1: Basis' : game.stewardTrainingLevel === 2 ? 'Lvl 2: Certificeret' : 'Lvl 3: Ekspert'}
+                                <span className="font-bold text-slate-200 font-mono">
+                                    Lvl {game.stewardTrainingLevel}
                                 </span>
                             </div>
                             {game.automatedPIDS ? (
-                                <div className="text-[10px] bg-emerald-950/40 text-emerald-400 px-2 py-1.5 rounded border border-emerald-500/20 font-bold flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                                <div className="text-[9px] bg-emerald-950/40 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/10 font-bold flex items-center gap-1 mt-0.5">
+                                    <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></div>
                                     AUTO PIDS AKTIV (-50% vrede)
                                 </div>
                             ) : (
-                                <div className="text-[10px] bg-slate-950/40 text-slate-400 px-2 py-1.5 rounded border border-slate-800 font-bold flex items-center gap-1.5">
+                                <div className="text-[9px] bg-slate-950/40 text-slate-400 px-1.5 py-0.5 rounded border border-white/5 font-bold flex items-center gap-1 mt-0.5">
                                     Intet auto-info system
                                 </div>
                             )}
                             {game.hasARIIS && (
-                                <div className="text-[10px] bg-indigo-950/40 text-indigo-400 px-2 py-1 rounded border border-indigo-500/20 font-bold">
-                                    ✓ ARIIS Infrastruktur-scanner
+                                <div className="text-[9px] bg-indigo-950/40 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/10 font-bold">
+                                    ✓ ARIIS Scanner aktiv
                                 </div>
                             )}
                             {game.hasTRES && (
-                                <div className="text-[10px] bg-cyan-950/40 text-cyan-400 px-2 py-1 rounded border border-cyan-500/20 font-bold">
-                                    ✓ TRES Togtelemetri
+                                <div className="text-[9px] bg-cyan-950/40 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/10 font-bold">
+                                    ✓ TRES Togtelemetri aktiv
                                 </div>
                             )}
                             {game.stewardSpecialTraining && (
-                                <div className="text-[10px] bg-amber-950/40 text-amber-400 px-2 py-1 rounded border border-amber-500/20 font-bold">
-                                    ✓ Stewards: Specialuddannet
+                                <div className="text-[9px] bg-amber-950/40 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/10 font-bold">
+                                    ✓ Specialuddannet personale
                                 </div>
                             )}
 
                             {game.isAnnouncementActive && (
-                                <div className="text-[10px] bg-blue-950/40 text-blue-400 px-2 py-1.5 rounded border border-blue-500/20 font-bold flex justify-between items-center animate-pulse">
-                                    <span className="flex items-center gap-1.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></div>
-                                        HØJTALER INFO AKTIV
+                                <div className="text-[9px] bg-blue-950/40 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/10 font-bold flex justify-between items-center animate-pulse mt-0.5">
+                                    <span className="flex items-center gap-1">
+                                        <div className="w-1 h-1 rounded-full bg-blue-400 animate-ping"></div>
+                                        Udkald aktiv
                                     </span>
-                                    <span className="font-mono text-[10px] text-blue-300 font-black">{Math.ceil(game.announcementTimer)}s</span>
+                                    <span className="font-mono text-blue-300 font-black">{Math.ceil(game.announcementTimer)}s</span>
                                 </div>
                             )}
 
@@ -515,12 +512,12 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                                     }
                                 }}
                                 disabled={game.budget < 50 || game.isAnnouncementActive}
-                                className={`w-full py-2 rounded-xl text-[11px] font-bold transition-all shadow-md mt-1 flex items-center justify-center gap-1.5 ${
+                                className={`w-full py-1.5 rounded-xl text-[10px] font-bold transition-all shadow-md mt-1 flex items-center justify-center gap-1 ${
                                     game.isAnnouncementActive
                                     ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40 cursor-not-allowed'
                                     : game.budget < 50
                                         ? 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
-                                        : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 active:scale-95'
+                                        : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-450/30 active:scale-95'
                                 }`}
                             >
                                 📢 Manuel Udkald ($50)
@@ -571,45 +568,45 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                 </div>
 
                 {/* Right Operations Column (Row 2, Col 3) */}
-                <div className="col-start-3 row-start-2 flex flex-col items-end gap-4 pointer-events-auto self-start">
+                <div className="col-start-3 row-start-2 flex flex-col items-end gap-3 pointer-events-auto self-start">
                     {/* Fleet Overview Panel */}
                     {fleet && (
-                        <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-2 w-48 text-sm animate-in slide-in-from-right duration-500">
-                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-2">
-                                <Train size={14} /> FLÅDESTATUS
+                        <div className="glass-panel p-3.5 rounded-2xl flex flex-col gap-1.5 w-48 text-xs animate-in slide-in-from-right duration-500">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1.5">
+                                <Train size={12} /> FLÅDESTATUS
                             </div>
-                            <div className="flex justify-between items-center text-slate-200">
+                            <div className="flex justify-between items-center text-slate-200 border-b border-white/5 pb-1">
                                 <span>Total Tog</span>
                                 <span className="font-bold font-mono">{fleet.total}</span>
                             </div>
-                            <div className="flex justify-between items-center text-emerald-400">
+                            <div className="flex justify-between items-center text-emerald-450 border-b border-white/5 pb-1">
                                 <span>I Drift</span>
                                 <span className="font-bold font-mono">{fleet.active}</span>
                             </div>
-                            <div className="flex justify-between items-center text-slate-500">
+                            <div className="flex justify-between items-center text-slate-500 border-b border-white/5 pb-1">
                                 <span>I Depot</span>
                                 <span className="font-bold font-mono">{fleet.depot}</span>
                             </div>
-                            <div className={`flex justify-between items-center ${fleet.broken > 0 ? 'text-rose-400 animate-pulse font-bold' : 'text-slate-600'}`}>
+                            <div className={`flex justify-between items-center ${fleet.broken > 0 ? 'text-rose-400 font-bold' : 'text-slate-650'}`}>
                                 <span>Værksted</span>
-                                <span className="font-mono">{fleet.broken}</span>
+                                <span className="font-bold font-mono">{fleet.broken}</span>
                             </div>
                         </div>
                     )}
 
                     {/* Alarmer & Fejl Panel */}
                     {anomalies.filter(a => a.detected).length > 0 && (
-                        <div className="bg-slate-900/95 backdrop-blur-md p-4 rounded-2xl border border-rose-500/30 shadow-xl flex flex-col gap-2 w-64 text-xs animate-in slide-in-from-right duration-300">
-                            <div className="font-bold text-rose-400 uppercase tracking-wider mb-1 flex items-center gap-1.5 animate-pulse">
-                                <AlertTriangle size={14} className="text-rose-500" /> ALARMER & FEJL
+                        <div className="glass-panel p-3.5 rounded-2xl border-rose-500/30 flex flex-col gap-1.5 w-64 text-xs animate-in slide-in-from-right duration-300">
+                            <div className="font-bold text-rose-400 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 animate-pulse text-[10px]">
+                                <AlertTriangle size={12} className="text-rose-500" /> ALARMER & FEJL
                             </div>
-                            <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto custom-scrollbar">
+                            <div className="flex flex-col gap-1.5 max-h-[240px] overflow-y-auto custom-scrollbar">
                                 {anomalies.filter(a => a.detected).map(anom => {
                                     const cost = anom.failed ? 800 : (game.maintenanceStrategy === 'PREDICTIVE' ? 100 : (game.maintenanceStrategy === 'CONDITIONAL' ? 250 : 300));
                                     const availableStewards = game.stewardsCount - game.stewardsBusy;
 
                                     return (
-                                        <div key={anom.id} className="bg-slate-950/60 p-2 rounded-xl border border-slate-850 flex flex-col gap-1.5 text-left">
+                                        <div key={anom.id} className="bg-slate-950/40 p-2 rounded-xl border border-white/5 flex flex-col gap-1.5 text-left">
                                             <div className="flex justify-between items-center">
                                                 <div>
                                                     <span className={`font-bold ${anom.failed ? 'text-rose-400' : 'text-amber-400'}`}>{anom.trainId}</span>
@@ -618,22 +615,22 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                                                 </div>
                                                 <span className={`text-[9px] px-1.5 py-0.5 rounded font-black ${
                                                     anom.failed 
-                                                    ? 'bg-rose-950/60 text-rose-400 border border-rose-500/20' 
-                                                    : 'bg-amber-950/60 text-amber-400 border border-amber-500/20'
+                                                    ? 'bg-rose-950/40 text-rose-400 border border-rose-500/10' 
+                                                    : 'bg-amber-950/40 text-amber-400 border border-amber-500/10'
                                                 }`}>
                                                     {anom.failed ? 'Nedbrud' : 'Anomali'}
                                                 </span>
                                             </div>
 
                                             {anom.stewardDeployed ? (
-                                                <div className="bg-slate-900/80 p-1.5 rounded border border-slate-850 text-[10px] text-slate-450">
+                                                <div className="bg-slate-900/30 p-1.5 rounded border border-white/5 text-[9px] text-slate-400">
                                                     {anom.stewardTravelTime !== undefined && anom.stewardTravelTime > 0 ? (
                                                         <div className="flex justify-between items-center text-blue-400 font-bold">
                                                             <span>Udsendt steward...</span>
                                                             <span className="text-white font-mono">~{Math.ceil(anom.stewardTravelTime)}s</span>
                                                         </div>
                                                     ) : (
-                                                        <div className="flex justify-between items-center text-emerald-455 font-bold">
+                                                        <div className="flex justify-between items-center text-emerald-450 font-bold">
                                                             <span>Udbedrer fejl...</span>
                                                             <span className="text-white font-mono">~{Math.ceil(anom.stewardRepairTime ?? 0)}s</span>
                                                         </div>
@@ -654,7 +651,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                                                     disabled={anom.failed && availableStewards <= 0}
                                                     className={`w-full py-1.5 rounded-lg text-center font-bold text-[10px] transition-all active:scale-95 ${
                                                         anom.failed 
-                                                        ? 'bg-rose-600 hover:bg-rose-500 text-white disabled:bg-slate-850 disabled:text-slate-650 disabled:cursor-not-allowed' 
+                                                        ? 'text-white disabled:bg-slate-850 disabled:text-slate-650 disabled:cursor-not-allowed animate-pulse-error' 
                                                         : 'bg-blue-600 hover:bg-blue-500 text-white shadow-sm'
                                                     }`}
                                                 >
