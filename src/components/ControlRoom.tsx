@@ -1,72 +1,164 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TopologicalMap } from './TopologicalMap';
 import { TrainDetails } from './TrainDetails';
 import { UpgradeShop } from './UpgradeShop';
 import { DataDashboard } from './DataDashboard';
-import { AlertTriangle, ShoppingCart, Users, Database, Zap, Activity, DollarSign, Clock, Menu, TrendingUp, Smile } from 'lucide-react';
+import { AlertTriangle, ShoppingCart, Users, Database, DollarSign, Menu, TrendingUp, Smile } from 'lucide-react';
 import { type Toast, ToastContainer } from './ToastNotification';
 import { Advisor } from './Advisor';
 
+interface TrainStateProps {
+    id: string;
+    position: number;
+    velocity: number;
+    state: string;
+    direction: number;
+    passengerCount: number;
+    maxCapacity: number;
+    dwellTimer: number;
+    totalDwellTime: number;
+    isManualOverride: boolean;
+}
+
+interface StationStateProps {
+    name: string;
+    position: number;
+    pax: number;
+}
+
+interface LogStateProps {
+    id: string;
+    tag: string;
+    value: string | number | boolean;
+    timestamp: number;
+}
+
+interface AnomalyStateProps {
+    id: string;
+    trainId: string;
+    component: string;
+    severity: number;
+    detected: boolean;
+}
+
+interface EventStateProps {
+    id: string;
+    name: string;
+    description: string;
+    type: 'DELAY' | 'FAILURE' | 'INFO';
+    timestamp: number;
+}
+
 interface ControlRoomProps {
-    trains: any[];
-    stations: any[];
-    alarms: any[];
-    logs: any[];
-    anomalies: any[];
-    game: { satisfaction: number, efficiency: number, budget: number, events: any[], maintenanceStrategy: any };
+    trains: TrainStateProps[];
+    stations: StationStateProps[];
+    alarms: { id: string; message: string; priority: number; active: boolean; timestamp: number }[];
+    logs: LogStateProps[];
+    anomalies: AnomalyStateProps[];
+    game: { 
+        satisfaction: number; 
+        efficiency: number; 
+        budget: number; 
+        events: EventStateProps[]; 
+        maintenanceStrategy: 'REACTIVE' | 'PREVENTIVE' | 'PREDICTIVE'; 
+        activeUpgrades?: Set<string>; 
+    };
     onEmergencyTrigger: () => void;
     onPurchaseUpgrade: (id: string, cost: number) => void;
     onScenarioTrigger?: (scenario: string) => void;
     onResolveAnomaly?: (id: string) => void;
     onSetStrategy?: (strategy: string) => void;
+    onSetManualOverride?: (trainId: string, isManual: boolean) => void;
+    onSetManualCommands?: (trainId: string, throttle: number, brake: number) => void;
 }
 
-export const ControlRoom: React.FC<ControlRoomProps> = ({ trains, stations, alarms, logs, anomalies, game, onEmergencyTrigger, onPurchaseUpgrade, onScenarioTrigger, onResolveAnomaly, onSetStrategy }) => {
+export const ControlRoom: React.FC<ControlRoomProps> = ({ 
+    trains, 
+    stations, 
+    // alarms is unused, omitting from destructuring to avoid warning
+    logs, 
+    anomalies, 
+    game, 
+    onEmergencyTrigger, 
+    onPurchaseUpgrade, 
+    onScenarioTrigger, 
+    onResolveAnomaly, 
+    onSetStrategy,
+    onSetManualOverride,
+    onSetManualCommands
+}) => {
     const [selectedTrainId, setSelectedTrainId] = useState<string | null>(null);
     const [showShop, setShowShop] = useState(false);
     const [showData, setShowData] = useState(false);
     const [toasts, setToasts] = useState<Toast[]>([]);
-    const [advisorMessage, setAdvisorMessage] = useState<string>("Welcome, Director! Check the Shop to upgrade your fleet.");
+    const lastEventIdRef = React.useRef<string | null>(null);
 
-    // Convert Game Events to Toasts & Advisor Messages
-    useEffect(() => {
-        if (game.events.length > 0) {
-            const latestEvent = game.events[game.events.length - 1];
-            addToast({
-                id: latestEvent.id,
-                type: latestEvent.type === 'FAILURE' ? 'ERROR' : 'INFO',
-                title: latestEvent.name || 'Event',
-                message: latestEvent.description
-            });
-
-            // Advisor reaction
-            if (latestEvent.type === 'FAILURE') {
-                setAdvisorMessage(`Critical failure detected! Open the Data Dashboard to fix it immediately!`);
-            }
-        }
-    }, [game.events.length]);
-
-    // Advisor tips based on stats
-    useEffect(() => {
-        if (game.satisfaction < 50) {
-            setAdvisorMessage("Passengers are unhappy! Try running more trains or upgrading station facilities.");
-        } else if (game.efficiency < 0.8) {
-            setAdvisorMessage("Energy efficiency is low. Consider buying Regenerative Braking upgrades.");
-        }
-    }, [game.satisfaction, game.efficiency]);
-
-    const addToast = (toast: Toast) => {
+    const addToast = useCallback((toast: Toast) => {
         setToasts(prev => {
             if (prev.find(t => t.id === toast.id)) return prev;
             return [...prev, toast];
         });
-    };
+    }, []);
 
-    const removeToast = (id: string) => {
+    const removeToast = useCallback((id: string) => {
         setToasts(prev => prev.filter(t => t.id !== id));
-    };
+    }, []);
+
+    // Convert Game Events to Toasts
+    useEffect(() => {
+        if (game.events.length > 0) {
+            const latestEvent = game.events[game.events.length - 1];
+            if (lastEventIdRef.current !== latestEvent.id) {
+                lastEventIdRef.current = latestEvent.id;
+                addToast({
+                    id: latestEvent.id,
+                    type: latestEvent.type === 'FAILURE' ? 'ERROR' : 'INFO',
+                    title: latestEvent.name || 'Event',
+                    message: latestEvent.description
+                });
+            }
+        }
+    }, [game.events, addToast]);
 
     const selectedTrain = trains.find(t => t.id === selectedTrainId);
+
+    // Advisor Message and Type computed dynamically based on tutorial/operational state
+    let advisorMessage = "Velkommen, Direktør! Klik på et tog på kortet for at se dets diagnostik og status.";
+    let advisorType: 'TUTORIAL' | 'WARNING' | 'TIP' = 'TUTORIAL';
+
+    if (showData) {
+        advisorMessage = "Her er DATA-dashboardet. Vælg 'PREDICTIVE' (prædiktiv) vedligeholdelse for at opdage fejl før de sker, og udbedre dem her.";
+        advisorType = 'TUTORIAL';
+    } else if (showShop) {
+        advisorMessage = "Butikken er åben! Køb opgraderinger som 'Buy New Train' eller 'High-Speed Doors' for at øge kapaciteten og hastigheden.";
+        advisorType = 'TUTORIAL';
+    } else if (selectedTrain?.isManualOverride) {
+        advisorMessage = "Manuel styring aktiveret! Brug skyderne til Throttle (gas) og Brake (bremse) til at køre toget. Åbn SHOP bagefter.";
+        advisorType = 'TUTORIAL';
+    } else if (selectedTrain) {
+        advisorMessage = "Tog valgt! Se detaljer til venstre. Prøv nu at aktivere 'Manuel styring' (Manual Override) for selv at styre toget!";
+        advisorType = 'TUTORIAL';
+    } else {
+        // Fallback to active failures, warnings, and general tips
+        const activeFailures = anomalies.filter(a => a.severity >= 1.0);
+        if (activeFailures.length > 0) {
+            advisorMessage = `Kritisk fejl opdaget på ${activeFailures[0].trainId} (${activeFailures[0].component})! Åbn DATA-dashboardet for at reparere den!`;
+            advisorType = 'WARNING';
+        } else if (game.events.length > 0 && game.events[game.events.length - 1].type === 'FAILURE') {
+            advisorMessage = "Systemadvarsel! En kritisk fejl kræver akut opmærksomhed. Åbn DATA for detaljer.";
+            advisorType = 'WARNING';
+        } else if (game.satisfaction < 50) {
+            advisorMessage = "Passagererne er utilfredse! Overvej at købe 'Add 4th Car' eller køre flere tog for at mindske ventetiden.";
+            advisorType = 'TIP';
+        } else if (game.efficiency < 0.8) {
+            advisorMessage = "Systemets energieffektivitet er lav. Opgrader til 'Regen Braking Mk II' i butikken for at spare penge.";
+            advisorType = 'TIP';
+        } else {
+            // General tip if everything is fine
+            advisorMessage = "Alt kører stabilt! Hold øje med økonomien, og overvej at udvide din flåde i myldretiden (RUSH HOUR).";
+            advisorType = 'TIP';
+        }
+    }
 
     return (
         <div className="relative w-full h-full bg-slate-950 overflow-hidden flex flex-col font-sans">
@@ -148,7 +240,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({ trains, stations, alar
             <ToastContainer toasts={toasts} onRemove={removeToast} />
 
             {/* 4. Advisor Layer */}
-            <Advisor message={advisorMessage} />
+            <Advisor message={advisorMessage} type={advisorType} />
 
             {/* 5. Main Content Area (Empty for now, map is behind) */}
             <div className="flex-1 relative z-0 pointer-events-none">
@@ -158,6 +250,8 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({ trains, stations, alar
                         <TrainDetails
                             train={selectedTrain}
                             onClose={() => setSelectedTrainId(null)}
+                            onSetManualOverride={onSetManualOverride}
+                            onSetManualCommands={onSetManualCommands}
                         />
                     </div>
                 )}
@@ -202,24 +296,15 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({ trains, stations, alar
 
             {/* Modals */}
             {showShop && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-10">
-                    <div className="w-full max-w-4xl h-full max-h-[800px] bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl overflow-hidden relative">
-                        <button
-                            onClick={() => setShowShop(false)}
-                            className="absolute top-4 right-4 text-slate-400 hover:text-white z-10"
-                        >
-                            <Activity size={24} /> {/* Close Icon Placeholder */}
-                        </button>
-                        <UpgradeShop
-                            budget={game.budget}
-                            onPurchase={(id, cost) => {
-                                onPurchaseUpgrade(id, cost);
-                                addToast({ id: `buy_${Date.now()} `, type: 'SUCCESS', title: 'Upgrade Purchased', message: 'System upgraded successfully.' });
-                            }}
-                            onClose={() => setShowShop(false)}
-                        />
-                    </div>
-                </div>
+                <UpgradeShop
+                    budget={game.budget}
+                    activeUpgrades={game.activeUpgrades || new Set()}
+                    onPurchase={(id, cost) => {
+                        onPurchaseUpgrade(id, cost);
+                        addToast({ id: `buy_${Date.now()}`, type: 'SUCCESS', title: 'Upgrade Purchased', message: 'System upgraded successfully.' });
+                    }}
+                    onClose={() => setShowShop(false)}
+                />
             )}
 
             {showData && (

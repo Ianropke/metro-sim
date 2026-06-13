@@ -10,18 +10,18 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onStart }) => {
 
     const steps = [
         {
-            title: "Welcome to Metro Sim",
-            description: "You are now the Chief Operator of a GoA4 Driverless Metro System. Your goal is to manage operations, ensure passenger satisfaction, and maintain financial stability.",
+            title: "Velkommen til Metro Sim",
+            description: "Du er nu driftsleder for et fuldautomatisk (GoA4) førerløst metrosystem. Dit mål er at styre driften, sikre passagerernes tilfredshed og opretholde en sund økonomi.",
             icon: <Play size={48} className="text-blue-500" />
         },
         {
-            title: "Tycoon Mode",
-            description: "Earn revenue from ticket sales. Use your budget to buy upgrades in the SHOP and manage your Maintenance Strategy to avoid costly breakdowns.",
+            title: "Tycoon & Butik",
+            description: "Tjen penge på billetindtægter. Brug dit budget til at købe opgraderinger i butikken (SHOP) og vælg den rette vedligeholdelsesstrategi for at undgå dyre nedbrud.",
             icon: <ShoppingCart size={48} className="text-green-500" />
         },
         {
-            title: "Data Intelligence",
-            description: "Use the DATA dashboard to monitor telemetry. Upgrade to Predictive Maintenance to detect anomalies before they cause service disruptions.",
+            title: "Data & Overvågning",
+            description: "Brug DATA-dashboardet til at overvåge togenes telemetri. Opgrader til prædiktiv vedligeholdelse for at opdage fejl på motorer, døre og bremser, før de skaber forsinkelser.",
             icon: <Database size={48} className="text-orange-500" />
         }
     ];
@@ -59,9 +59,9 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onStart }) => {
                         className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                     >
                         {step < steps.length - 1 ? (
-                            <>Next <ChevronRight size={20} /></>
+                            <>Næste <ChevronRight size={20} /></>
                         ) : (
-                            <>Start Operations <Check size={20} /></>
+                            <>Start driften <Check size={20} /></>
                         )}
                     </button>
                 </div>

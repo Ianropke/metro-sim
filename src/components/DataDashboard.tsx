@@ -2,7 +2,7 @@ import React from 'react';
 import { Database, Server, Activity } from 'lucide-react';
 
 interface DataDashboardProps {
-    logs: { id: string, tag: string, value: any, timestamp: number }[];
+    logs: { id: string, tag: string, value: string | number | boolean, timestamp: number }[];
     anomalies?: { id: string, trainId: string, component: string, severity: number, detected: boolean }[];
     currentStrategy?: 'REACTIVE' | 'PREVENTIVE' | 'PREDICTIVE';
     onClose: () => void;
@@ -47,7 +47,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({ logs, anomalies, c
                     <div className="flex-1 bg-slate-950 rounded border border-slate-800 relative overflow-hidden p-2">
                         <div className="absolute inset-0 flex items-end justify-between px-2 pb-2 gap-1 opacity-50">
                             {[...Array(20)].map((_, i) => (
-                                <div key={i} className="w-full bg-blue-500/50 rounded-t" style={{ height: `${30 + Math.random() * 60}%` }}></div>
+                                <div key={i} className="w-full bg-blue-500/50 rounded-t" style={{ height: `${30 + ((i * 17) % 60)}%` }}></div>
                             ))}
                         </div>
                         <div className="absolute top-2 left-2 text-xs text-slate-500">Cluster Load (Last 1m)</div>

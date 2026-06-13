@@ -17,43 +17,57 @@ export class ZoneController {
      * This runs at a fixed frequency (e.g. 5Hz).
      */
     public updateHeadways() {
-        // Sort trains by position (assuming single track for now)
-        const sortedTrains = Array.from(this.activeTrains.values()).sort((a, b) => a.physics.position - b.physics.position);
+        // Sort trains by position per direction
+        const allTrains = Array.from(this.activeTrains.values());
+        
+        const forwardTrains = allTrains
+            .filter(t => t.direction === 1)
+            .sort((a, b) => a.physics.position - b.physics.position);
+            
+        const backwardTrains = allTrains
+            .filter(t => t.direction === -1)
+            .sort((a, b) => b.physics.position - a.physics.position); // Sorted descending for backward movement
 
-        for (let i = 0; i < sortedTrains.length; i++) {
-            const train = sortedTrains[i];
+        // Forward Track: followers must stay behind leaders (smaller position)
+        for (let i = 0; i < forwardTrains.length; i++) {
+            const train = forwardTrains[i];
 
-            // If there is a train ahead
-            if (i < sortedTrains.length - 1) {
-                const leader = sortedTrains[i + 1];
+            if (i < forwardTrains.length - 1) {
+                const leader = forwardTrains[i + 1];
 
-                // Calculate Safe Braking Distance for the follower
-                // d_brake = v^2 / (2 * a)
-                const v = Math.abs(train.physics.velocity);
+                const v = train.physics.velocity;
                 const d_braking = (v * v) / (2 * this.GEBR);
-
-                // Distance traveled during reaction time
                 const d_reaction = v * this.REACTION_TIME;
-
-                // LMA = LeaderPos - SafetyBuffer
-                // SafetyBuffer = BrakingDist + ReactionDist + FixedMargin
-                // Note: In real CBTC, we target the *rear* of the leader. 
-                // We assume position is the *front*, so we subtract leader length if we had it.
-                // For now, assume point mass or handle length elsewhere.
 
                 const safetyBuffer = d_braking + d_reaction + this.SAFETY_MARGIN;
                 const lma = leader.physics.position - safetyBuffer;
 
-                // Send LMA to VOBC
-                // In a real sim, this is a radio message.
-                // Here we cheat and set it directly on the train's VOBC (which we need to add).
                 train.vobc.setLMA(lma);
-
-                // For now, let's just log or store it on the train if we add a property.
-                // We need to extend the Train class to have a VOBC.
             } else {
-                // No leader, infinite authority (or end of track)
-                // train.vobc.setLMA(100000); 
+                // No leader ahead on forward track, authority is the terminus (Nørreport at 5000m)
+                train.vobc.setLMA(5000);
+            }
+        }
+
+        // Backward Track: followers must stay behind leaders (larger position)
+        for (let i = 0; i < backwardTrains.length; i++) {
+            const train = backwardTrains[i];
+
+            if (i < backwardTrains.length - 1) {
+                const leader = backwardTrains[i + 1];
+
+                const v = train.physics.velocity;
+                const d_braking = (v * v) / (2 * this.GEBR);
+                const d_reaction = v * this.REACTION_TIME;
+
+                const safetyBuffer = d_braking + d_reaction + this.SAFETY_MARGIN;
+                // Leader position is smaller than follower's position, so LMA is leader.pos + buffer
+                const lma = leader.physics.position + safetyBuffer;
+
+                train.vobc.setLMA(lma);
+            } else {
+                // No leader ahead on backward track, authority is the terminus (Vanløse at 0m)
+                train.vobc.setLMA(0);
             }
         }
     }
@@ -67,16 +81,19 @@ export class VOBC {
     public estimatedPosition: number = 0;
     public uncertainty: number = 0;
 
-    public update(truePosition: number, _trueVelocity: number, _dt: number) {
+    public update(truePosition: number, _trueVelocity: number, _dt: number, direction: 1 | -1 = 1) {
         // Simulate Odometry
-        // In reality, we integrate wheel ticks.
-        // Here we just take truth and add noise if we wanted.
         this.estimatedPosition = truePosition;
 
-        // Check Safety
-        if (this.estimatedPosition > this.lma) {
-            // Trigger Emergency Brake
-            return true; // Emergency Trip
+        // Check Safety: trip if we exceed the LMA limit
+        if (direction === 1) {
+            if (this.estimatedPosition > this.lma) {
+                return true; // Emergency Trip (overshot forward authority)
+            }
+        } else {
+            if (this.estimatedPosition < this.lma) {
+                return true; // Emergency Trip (overshot backward authority)
+            }
         }
         return false;
     }

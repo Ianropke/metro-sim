@@ -75,22 +75,51 @@ export class SimulationLoop {
 
         // Update all trains
         this.trains.forEach(train => {
-            train.update(dt, 0); // Flat track for now
+            // Update physics, controller and doors
+            train.update(dt, 0, this.stations, this.gameManager);
 
-            // Calculate Power (Mock for now, should come from TractionSystem)
-            // P = F * v
-            // We need to expose this from Train/Traction
-            const power = train.traction.calculatePowerConsumption(0, train.physics.velocity); // Need actual force
-            totalPower += power;
+            // Calculate actual power consumption (Motoring minus Regen)
+            let tractiveForce = 0;
+            if (train.brakeCommand === 0 && !train.isEmergencyBrake) {
+                tractiveForce = train.traction.calculateTractiveEffort(train.physics.velocity, train.throttleCommand);
+                if (this.gameManager.activeUpgrades.has('MOTOR_UPGRADE')) {
+                    tractiveForce *= 1.25;
+                }
+            }
+
+            // Power = F * v
+            const motoringPower = train.traction.calculatePowerConsumption(tractiveForce, train.physics.velocity);
+
+            // Regen Braking power recovery
+            let regenPower = 0;
+            if (train.brakeCommand > 0 && train.physics.velocity > 0) {
+                const targetDecel = train.brakeCommand * 1.1;
+                const brakingForce = train.braking.calculateBrakingForce(
+                    targetDecel,
+                    train.physics.velocity,
+                    train.physics.mass_effective,
+                    dt,
+                    train.isEmergencyBrake
+                );
+                const p_regen_mech = brakingForce * train.physics.velocity;
+                const regenRatio = train.braking.getRegenRatio(train.physics.velocity);
+                const regenEfficiency = this.gameManager.activeUpgrades.has('REGEN_BRAKING') ? 0.85 : 0.50;
+                regenPower = p_regen_mech * regenRatio * regenEfficiency;
+            }
+
+            const netPower = motoringPower - regenPower; // can be negative (recovering energy)
+            totalPower += netPower;
 
             // Update SCADA Tags
             this.scada.updateTag(`${train.id}_VEL`, train.physics.velocity * 3.6); // km/h
             this.scada.updateTag(`${train.id}_POS`, train.physics.position);
+            this.scada.updateTag(`${train.id}_PWR`, netPower);
+            this.scada.updateTag(`${train.id}_PAX`, train.passengerCount);
 
             // Log to Data Lake (Sampled)
             if (Math.random() < 0.1) { // Log 10% of updates to avoid spamming
                 this.scada.logTelemetry(`${train.id}_VEL`, (train.physics.velocity * 3.6).toFixed(1));
-                this.scada.logTelemetry(`${train.id}_PWR`, train.traction.calculatePowerConsumption(0, train.physics.velocity).toFixed(1));
+                this.scada.logTelemetry(`${train.id}_PWR`, netPower.toFixed(1));
             }
         });
 
@@ -100,6 +129,33 @@ export class SimulationLoop {
     }
 
     private updateLogic(dt: number) {
+        // Check if BUY_TRAIN upgrade is pending
+        if (this.gameManager.activeUpgrades.has('BUY_TRAIN')) {
+            this.gameManager.activeUpgrades.delete('BUY_TRAIN'); // clear it
+            const newTrainId = `TRN0${this.trains.length + 1}`;
+            
+            // Spawn at Vanløse (0m) or halfway (2000m)
+            const spawnPos = this.trains.length % 2 === 0 ? 0 : 2000;
+            const newTrain = new Train(newTrainId, spawnPos);
+            newTrain.direction = 1;
+            newTrain.stateMachine.transitionTo('AUTO_DRIVE');
+            this.trains.push(newTrain);
+            this.zoneController.registerTrain(newTrain);
+            
+            this.scada.logTelemetry('SYSTEM', `Dispatched new train: ${newTrainId}`);
+            const eventId = `NEW_TRN_${Date.now()}`;
+            this.gameManager.activeEvents.push({
+                id: eventId,
+                name: 'Train Dispatched',
+                description: `New automated train ${newTrainId} is entering service!`,
+                type: 'INFO',
+                timestamp: Date.now()
+            });
+            setTimeout(() => {
+                this.gameManager.activeEvents = this.gameManager.activeEvents.filter(e => e.id !== eventId);
+            }, 5000);
+        }
+
         // Update Signaling
         this.zoneController.updateHeadways();
 
@@ -108,14 +164,6 @@ export class SimulationLoop {
         this.stations.forEach(st => {
             st.update(dt);
             totalWaiting += st.passengerCount;
-
-            // SIMULATION: Assume some passengers board/alight every update if train is present
-            // In a real implementation, this would be event-driven from the Train/Station interaction
-            // For now, we'll simulate a trickle of revenue based on total waiting pax (as if they are buying tickets)
-            if (st.passengerCount > 0 && Math.random() < 0.01) {
-                this.gameManager.addScore(1); // 1 passenger bought a ticket
-                st.passengerCount--; // They boarded
-            }
         });
 
         // Update Game Manager (Satisfaction)
@@ -124,14 +172,19 @@ export class SimulationLoop {
         this.gameManager.checkForAnomalies(dt, this.trains);
     }
 
-    // API for UI to get state
     public getState() {
         return {
             trains: this.trains.map(t => ({
                 id: t.id,
                 position: t.physics.position,
                 velocity: t.physics.velocity,
-                state: t.stateMachine.currentState
+                state: t.stateMachine.currentState,
+                direction: t.direction,
+                passengerCount: t.passengerCount,
+                maxCapacity: t.maxCapacity,
+                dwellTimer: t.dwellTimer,
+                totalDwellTime: t.totalDwellTime,
+                isManualOverride: t.isManualOverride
             })),
             stations: this.stations.map(s => ({
                 name: s.name,
@@ -145,7 +198,8 @@ export class SimulationLoop {
                 budget: this.gameManager.budget,
                 events: this.gameManager.activeEvents,
                 anomalies: this.gameManager.anomalies,
-                maintenanceStrategy: this.gameManager.maintenanceStrategy
+                maintenanceStrategy: this.gameManager.maintenanceStrategy,
+                activeUpgrades: this.gameManager.activeUpgrades
             },
             logs: this.scada.telemetryLog
         };
@@ -165,13 +219,17 @@ export class SimulationLoop {
                 s.passengerCount += 500;
             });
             this.scada.raiseAlarm('SCENARIO_START', 'Morning Rush Hour Started: High Passenger Load', 3);
+            const scenId = `SCEN_${Date.now()}`;
             this.gameManager.activeEvents.push({
-                id: `SCEN_${Date.now()}`,
+                id: scenId,
                 name: 'Morning Rush',
                 description: 'Passenger levels critical. Keep headways low!',
                 type: 'INFO',
                 timestamp: Date.now()
             });
+            setTimeout(() => {
+                this.gameManager.activeEvents = this.gameManager.activeEvents.filter(e => e.id !== scenId);
+            }, 5000);
         }
     }
 }

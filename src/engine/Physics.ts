@@ -43,58 +43,45 @@ export class TrainPhysics {
      * @param grade Slope of the track (radians) - Positive is uphill
      * @param dt Time delta (seconds)
      */
-    public update(tractiveForce: number, grade: number, dt: number): void {
+    public update(tractiveForce: number, grade: number, dt: number, direction: 1 | -1 = 1): void {
         // 1. Calculate Effective Mass
         const totalStaticMass = this.MASS_TARE + this.mass_pax;
         const massEff = totalStaticMass * (1 + this.ROTARY_INERTIA_FACTOR);
 
         // 2. Calculate Resistive Forces (Davis Equation)
         // R(v) = A + Bv + Cv^2
-        // Note: Resistance always opposes motion.
-        const v_abs = Math.abs(this.velocity);
+        // Since velocity is absolute speed (>=0), resistive force always opposes it.
+        const v_abs = this.velocity;
         const C_coeff = this.inTunnel ? this.DRAG.C_tunnel : this.DRAG.C;
-
         const f_resist = this.DRAG.A + (this.DRAG.B * v_abs) + (C_coeff * v_abs * v_abs);
 
-        // Direction of resistance is opposite to velocity. 
-        // If velocity is 0, resistance opposes the net active force (traction - grade) to prevent drift, 
-        // but we'll simplify for now as "opposing intended movement" or just 0 if static.
-        const dir = this.velocity > 0 ? 1 : (this.velocity < 0 ? -1 : 0);
-
-        // 3. Calculate Grade Force
-        // F_grade = M * g * sin(theta)
-        // Positive grade (uphill) opposes forward motion.
-        const f_grade = (totalStaticMass * this.GRAVITY * Math.sin(grade)) / 1000.0; // Convert N to kN
+        // 3. Calculate Grade Force in direction of motion
+        // Positive grade (uphill) opposes motion. In reverse direction, positive grade is downhill.
+        const f_grade_base = (totalStaticMass * this.GRAVITY * Math.sin(grade)) / 1000.0; // Convert N to kN
+        const f_grade = direction * f_grade_base;
 
         // 4. Net Force
         // F_net = F_traction - F_resist - F_grade
-        // We need to be careful with signs. 
-        // F_traction is signed input.
-        // F_resist always opposes velocity.
-        // F_grade is positive uphill (opposes forward).
-
-        let f_net = tractiveForce - (f_resist * dir) - f_grade;
+        let f_net = tractiveForce - f_resist - f_grade;
 
         // Static Friction Logic (Stiction)
-        // If speed is near zero and force is not enough to overcome static friction, stay still.
-        if (Math.abs(this.velocity) < 0.01 && Math.abs(tractiveForce - f_grade) < this.DRAG.A) {
+        if (this.velocity < 0.01 && Math.abs(tractiveForce - f_grade) < this.DRAG.A) {
             f_net = 0;
             this.velocity = 0;
         }
 
-        // 5. Acceleration (Newton's Second Law)
-        // a = F / M
-        // F is in kN, M is in kg. So F*1000 / M = m/s^2
+        // 5. Acceleration
         this.acceleration = (f_net * 1000.0) / massEff;
 
         // 6. Integration (Euler)
-        // v = v + at
-        // s = s + vt
         this.velocity += this.acceleration * dt;
-        this.position += this.velocity * dt;
-
-        // Sanity check for negative velocity (if we don't support reversing yet, or just to keep it clean)
-        // For now, we allow reversing (rollback on hill).
+        if (this.velocity < 0) {
+            this.velocity = 0;
+            this.acceleration = 0;
+        }
+        
+        // Update position in direction of travel
+        this.position += direction * this.velocity * dt;
     }
 
     public get mass_effective(): number {

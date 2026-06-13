@@ -71,10 +71,10 @@ export class SCADA_Manager {
     }
 
     // Data Intelligence / Telemetry Stream
-    public telemetryLog: { id: string, tag: string, value: any, timestamp: number }[] = [];
+    public telemetryLog: { id: string, tag: string, value: string | number | boolean, timestamp: number }[] = [];
     private readonly MAX_LOG_SIZE = 50;
 
-    public logTelemetry(tag: string, value: any) {
+    public logTelemetry(tag: string, value: string | number | boolean) {
         this.telemetryLog.unshift({
             id: `LOG_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             tag,

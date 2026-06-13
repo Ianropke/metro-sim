@@ -12,6 +12,28 @@ export class GameManager {
     private readonly SATISFACTION_DECAY_PER_WAITING_PAX = 0.001; // % per second per pax
     private readonly ENERGY_PENALTY_PER_KWH = 0.05; // % per kWh used
 
+    // Active Upgrades Set
+    public activeUpgrades: Set<string> = new Set();
+
+    public purchaseUpgrade(id: string, cost: number): boolean {
+        if (this.budget >= cost) {
+            if (id === 'BUY_TRAIN') {
+                this.budget -= cost;
+                // We track buy train as a counter or simple trigger. In SimulationLoop, we check if
+                // activeUpgrades has a flag or we can just trigger it.
+                // We'll add it to set, and the SimulationLoop will read it and spawn the train, then clear or handle it.
+                this.activeUpgrades.add(id);
+                return true;
+            }
+            if (!this.activeUpgrades.has(id)) {
+                this.budget -= cost;
+                this.activeUpgrades.add(id);
+                return true;
+            }
+        }
+        return false;
+    }
+
     public update(dt: number, waitingPax: number, energyUsedKWh: number) {
         // 1. Update Satisfaction
         // Decay based on people waiting
@@ -19,8 +41,8 @@ export class GameManager {
         this.passengerSatisfaction = Math.max(0, this.passengerSatisfaction - decay);
 
         // 2. Update Energy Efficiency & Cost
-        // Simple linear penalty for now, could be relative to "ideal" usage
-        this.energyEfficiency = Math.max(0, this.energyEfficiency - (energyUsedKWh * this.ENERGY_PENALTY_PER_KWH));
+        // If energyUsedKWh is negative (regen braking), this will boost efficiency!
+        this.energyEfficiency = Math.min(100, Math.max(0, this.energyEfficiency - (energyUsedKWh * this.ENERGY_PENALTY_PER_KWH)));
 
         // Deduct Energy Cost
         const energyCost = energyUsedKWh * this.energyCostPerKWh;
@@ -92,7 +114,7 @@ export class GameManager {
     }
 
     // Predictive Maintenance / Anomaly Detection
-    public anomalies: { id: string, trainId: string, component: string, severity: number, detected: boolean }[] = [];
+    public anomalies: { id: string, trainId: string, component: string, severity: number, detected: boolean, failed?: boolean }[] = [];
     public maintenanceStrategy: 'REACTIVE' | 'PREVENTIVE' | 'PREDICTIVE' = 'REACTIVE';
 
     public setMaintenanceStrategy(strategy: 'REACTIVE' | 'PREVENTIVE' | 'PREDICTIVE') {
@@ -103,7 +125,7 @@ export class GameManager {
         this.maintenanceStrategy = strategy;
     }
 
-    public checkForAnomalies(dt: number, trains: any[]) {
+    public checkForAnomalies(dt: number, trains: { id: string }[]) {
         // Strategy Costs
         if (this.maintenanceStrategy === 'PREVENTIVE') this.budget -= (500 / 60) * dt;
         if (this.maintenanceStrategy === 'PREDICTIVE') this.budget -= (100 / 60) * dt;
@@ -117,24 +139,30 @@ export class GameManager {
             const components = ['Motor', 'Doors', 'Brakes', 'HVAC'];
             const component = components[Math.floor(Math.random() * components.length)];
 
-            this.anomalies.push({
-                id: `ANOM_${Date.now()}`,
-                trainId: train.id,
-                component,
-                severity: Math.random(), // 0.0 to 1.0
-                detected: this.maintenanceStrategy === 'PREDICTIVE' // Only visible in Predictive mode
-            });
+            // Check if there is already an anomaly for this train component to avoid duplicates
+            const existing = this.anomalies.find(a => a.trainId === train.id && a.component === component);
+            if (!existing) {
+                this.anomalies.push({
+                    id: `ANOM_${Date.now()}`,
+                    trainId: train.id,
+                    component,
+                    severity: 0.1 + Math.random() * 0.4, // start with minor severity
+                    detected: this.maintenanceStrategy === 'PREDICTIVE' // Only visible in Predictive mode
+                });
+            }
         }
 
         // Anomaly Evolution (Hidden -> Failure)
         this.anomalies.forEach(anom => {
-            anom.severity += 0.05 * dt; // Grows over time
-            if (anom.severity >= 1.0) {
-                // Evolve into Failure
-                this.triggerEvent('FAILURE', `Failure: ${anom.component} on ${anom.trainId}`);
-                this.applyPenalty(1000); // Expensive repair
-                // Remove anomaly as it's now an active event
-                this.anomalies = this.anomalies.filter(a => a.id !== anom.id);
+            if (!anom.failed) {
+                anom.severity += 0.04 * dt; // Grows over time
+                if (anom.severity >= 1.0) {
+                    anom.severity = 1.0;
+                    anom.failed = true;
+                    anom.detected = true; // Breakdown is immediately visible
+                    this.triggerEvent('FAILURE', `Failure: ${anom.component} on ${anom.trainId}`);
+                    this.applyPenalty(1000); // Expensive penalty for breakdown
+                }
             }
         });
     }
@@ -143,11 +171,13 @@ export class GameManager {
         const anomaly = this.anomalies.find(a => a.id === id);
         if (anomaly) {
             this.anomalies = this.anomalies.filter(a => a.id !== id);
-            // Cost depends on strategy
-            if (this.maintenanceStrategy === 'PREDICTIVE') {
-                this.budget -= 100; // Cheap fix
+            // Cost depends on strategy and severity
+            if (anomaly.failed) {
+                this.budget -= 800; // Repairing a fully failed component is expensive
+            } else if (this.maintenanceStrategy === 'PREDICTIVE') {
+                this.budget -= 100; // Cheap predictive fix
             } else {
-                this.budget -= 500; // Standard fix (if somehow caught)
+                this.budget -= 400; // Standard fix
             }
         }
     }
