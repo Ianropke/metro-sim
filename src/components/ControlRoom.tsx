@@ -262,10 +262,120 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                 />
             </div>
 
-            {/* 2. HUD - Top Bar (Tycoon Style) */}
-            <div className="absolute top-0 left-0 w-full p-4 z-10 pointer-events-none flex justify-between items-start">
-                {/* Left: Game Info & Objectives */}
-                <div className="flex flex-col gap-2.5 pointer-events-auto">
+            {/* 2. UI Layer (CSS Grid Layout based on 4-Zone Strategy) */}
+            <div className="absolute inset-0 z-10 pointer-events-none grid grid-cols-[280px_1fr_280px] grid-rows-[auto_1fr_auto] p-4 gap-4">
+                
+                {/* HUD Top Bar (Top Row) */}
+                <div className="col-start-1 pointer-events-none"></div>
+
+                {/* Center: Stat Bubbles */}
+                <div className="col-start-2 justify-self-center flex gap-4 pointer-events-auto">
+                    {/* Clock Bubble */}
+                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-4 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-emerald-500 cursor-help">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider text-center">Tid</span>
+                            <span className="text-xl font-black font-mono text-emerald-400">
+                                {Math.floor(game.timeOfDay / 3600).toString().padStart(2, '0')}:
+                                {Math.floor((game.timeOfDay % 3600) / 60).toString().padStart(2, '0')}
+                            </span>
+                        </div>
+                        {/* Custom Tooltip */}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                            <div className="font-bold text-emerald-400 mb-1">⏰ KLOKKESLÆT</div>
+                            Klokkeslæt i simulationen. Driften kører i døgndrift. Tiden går hurtigere end i virkeligheden.
+                        </div>
+                    </div>
+
+                    {/* Budget Bubble */}
+                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-emerald-500 cursor-help">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
+                            <DollarSign size={20} strokeWidth={3} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Budget</span>
+                            <span className={`text-xl font-black font-mono ${game.budget < 0 ? 'text-rose-400' : 'text-white'}`}>
+                                ${game.budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </span>
+                        </div>
+                        {/* Custom Tooltip */}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                            <div className="font-bold text-emerald-400 mb-1">💵 DRIFTSBUDGET</div>
+                            Dit nuværende budget. Tjen penge ved at transportere passagerer. Hvis budgettet rammer <span className="text-rose-400 font-bold">-$5.000</span>, går du konkurs!
+                        </div>
+                    </div>
+
+                    {/* Satisfaction Bubble */}
+                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-blue-500 cursor-help">
+                        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                            <Smile size={20} strokeWidth={3} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Tilfredshed</span>
+                            <span className="text-xl font-black font-mono text-white">
+                                {Math.round(game.satisfaction)}%
+                            </span>
+                        </div>
+                        {/* Custom Tooltip */}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                            <div className="font-bold text-blue-400 mb-1">😊 PASSAGER-TILFREDSHED</div>
+                            Gennemsnitlig tilfredshed. Falder gradvist hvis folk venter for længe på stationerne. Hvis den rammer <span className="text-rose-400 font-bold">0%</span>, bliver du fyret!
+                        </div>
+                    </div>
+
+                    {/* Efficiency Bubble */}
+                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-amber-500 cursor-help">
+                        <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30">
+                            <TrendingUp size={20} strokeWidth={3} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Effektivitet</span>
+                            <span className="text-xl font-black font-mono text-white">
+                                {game.efficiency.toFixed(0)}%
+                            </span>
+                        </div>
+                        {/* Custom Tooltip */}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                            <div className="font-bold text-amber-400 mb-1">⚡ ENERGIEFFEKTIVITET</div>
+                            Systemets energieffektivitet. Højere effektivitet reducerer løbende el-omkostninger. Kan forbedres via regenerativ bremsning i butikken.
+                        </div>
+                    </div>
+                    
+                    {/* Passengers Bubble */}
+                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-purple-500 cursor-help">
+                        <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
+                            <span className="font-bold">Px</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Passagerer</span>
+                            <span className="text-xl font-black font-mono text-white">
+                                {Math.floor(game.totalPassengersTransported || 0).toLocaleString()}
+                            </span>
+                        </div>
+                        {/* Custom Tooltip */}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
+                            <div className="font-bold text-purple-400 mb-1">👥 TOTAL TRANSPORTERET</div>
+                            Det samlede antal passagerer bragt frem. Nå over <span className="text-purple-400 font-bold">5.000</span> passagerer og mindst <span className="text-blue-400 font-bold">80% tilfredshed</span> for at vinde!
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right: Message Log Toggle */}
+                <div className="col-start-3 justify-self-end pointer-events-auto">
+                    <button 
+                        onClick={() => setShowLog(prev => !prev)}
+                        className={`w-12 h-12 rounded-full border flex items-center justify-center text-white transition-all shadow-xl hover:scale-105 active:scale-95 cursor-pointer ${
+                            showLog 
+                            ? 'bg-blue-600 border-blue-500 hover:bg-blue-500' 
+                            : 'bg-slate-900/90 backdrop-blur-md border-slate-700 hover:bg-slate-800 hover:border-blue-500'
+                        }`}
+                        title="Vis beskedhistorik"
+                    >
+                        <MessageSquare size={20} />
+                    </button>
+                </div>
+
+                {/* Left Info Column (Row 2, Col 1) */}
+                <div className="col-start-1 row-start-2 flex flex-col gap-2.5 pointer-events-auto self-start">
                     {/* Combined Header & Mission Panel */}
                     <div className="bg-slate-900/90 backdrop-blur-md p-3.5 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-2 w-64 text-xs animate-in slide-in-from-left duration-300">
                         <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-1">
@@ -419,114 +529,52 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                     </div>
                 </div>
 
-                {/* Center: Stat Bubbles */}
-                <div className="flex gap-4 pointer-events-auto">
-                    {/* Clock Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-4 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-emerald-500 cursor-help">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider text-center">Tid</span>
-                            <span className="text-xl font-black font-mono text-emerald-400">
-                                {Math.floor(game.timeOfDay / 3600).toString().padStart(2, '0')}:
-                                {Math.floor((game.timeOfDay % 3600) / 60).toString().padStart(2, '0')}
-                            </span>
-                        </div>
-                        {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
-                            <div className="font-bold text-emerald-400 mb-1">⏰ KLOKKESLÆT</div>
-                            Klokkeslæt i simulationen. Driften kører i døgndrift. Tiden går hurtigere end i virkeligheden.
-                        </div>
-                    </div>
-
-                    {/* Budget Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-emerald-500 cursor-help">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
-                            <DollarSign size={20} strokeWidth={3} />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Budget</span>
-                            <span className={`text-xl font-black font-mono ${game.budget < 0 ? 'text-rose-400' : 'text-white'}`}>
-                                ${game.budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </span>
-                        </div>
-                        {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
-                            <div className="font-bold text-emerald-400 mb-1">💵 DRIFTSBUDGET</div>
-                            Dit nuværende budget. Tjen penge ved at transportere passagerer. Hvis budgettet rammer <span className="text-rose-400 font-bold">-$5.000</span>, går du konkurs!
-                        </div>
-                    </div>
-
-                    {/* Satisfaction Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-blue-500 cursor-help">
-                        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                            <Smile size={20} strokeWidth={3} />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Tilfredshed</span>
-                            <span className="text-xl font-black font-mono text-white">
-                                {Math.round(game.satisfaction)}%
-                            </span>
-                        </div>
-                        {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
-                            <div className="font-bold text-blue-400 mb-1">😊 PASSAGER-TILFREDSHED</div>
-                            Gennemsnitlig tilfredshed. Falder gradvist hvis folk venter for længe på stationerne. Hvis den rammer <span className="text-rose-400 font-bold">0%</span>, bliver du fyret!
-                        </div>
-                    </div>
-
-                    {/* Efficiency Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-amber-500 cursor-help">
-                        <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30">
-                            <TrendingUp size={20} strokeWidth={3} />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Effektivitet</span>
-                            <span className="text-xl font-black font-mono text-white">
-                                {game.efficiency.toFixed(0)}%
-                            </span>
-                        </div>
-                        {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
-                            <div className="font-bold text-amber-400 mb-1">⚡ ENERGIEFFEKTIVITET</div>
-                            Systemets energieffektivitet. Højere effektivitet reducerer løbende el-omkostninger. Kan forbedres via regenerativ bremsning i butikken.
-                        </div>
-                    </div>
-                    
-                    {/* Passengers Bubble */}
-                    <div className="group relative bg-slate-900/90 backdrop-blur-md pl-3 pr-6 py-2 rounded-full border-2 border-slate-700 shadow-xl flex items-center gap-3 transition-all hover:scale-105 hover:border-purple-500 cursor-help">
-                        <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
-                            <span className="font-bold">Px</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Passagerer</span>
-                            <span className="text-xl font-black font-mono text-white">
-                                {Math.floor(game.totalPassengersTransported || 0).toLocaleString()}
-                            </span>
-                        </div>
-                        {/* Custom Tooltip */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-64 hidden group-hover:block bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl z-50 text-xs text-slate-200 pointer-events-none leading-relaxed animate-in fade-in duration-200">
-                            <div className="font-bold text-purple-400 mb-1">👥 TOTAL TRANSPORTERET</div>
-                            Det samlede antal passagerer bragt frem. Nå over <span className="text-purple-400 font-bold">5.000</span> passagerer og mindst <span className="text-blue-400 font-bold">80% tilfredshed</span> for at vinde!
-                        </div>
-                    </div>
+                {/* Middle Interactive Zone / Floating Panels (Row 2, Col 2) */}
+                <div className="col-start-2 row-start-2 relative flex items-start justify-start pointer-events-none px-4">
+                    {selectedTrain && (() => {
+                        const isSpawnBlocked = trains.some(t => t.state !== 'DEPOT' && t.position < 300);
+                        return (
+                            <div className="pointer-events-auto z-[100] animate-in fade-in slide-in-from-left duration-300">
+                                <TrainDetails
+                                    train={selectedTrain}
+                                    onClose={() => setSelectedTrainId(null)}
+                                    onSetManualOverride={onSetManualOverride}
+                                    onSetManualCommands={onSetManualCommands}
+                                    anomalies={anomalies.filter(a => a.trainId === selectedTrain.id && a.severity > 0)}
+                                    maintenanceStrategy={game.maintenanceStrategy}
+                                    isSpawnBlocked={isSpawnBlocked}
+                                    stewardsCount={game.stewardsCount}
+                                    stewardsBusy={game.stewardsBusy}
+                                    onRepairAnomaly={(id) => {
+                                        if (onResolveAnomaly) {
+                                            onResolveAnomaly(id);
+                                            addToast({ id: `fix_${Date.now()}`, type: 'SUCCESS', title: 'Tog Repareret', message: 'Systemet er nu fuldt funktionsdygtigt.' });
+                                        }
+                                    }}
+                                    onDeploy={() => {
+                                        if (game.budget < 500) {
+                                            addToast({ id: 'err', type: 'ERROR', title: 'Utilstrækkelige Midler', message: 'Det koster $500 at indsætte et tog.' });
+                                            return;
+                                        }
+                                        if (onDeployTrain) onDeployTrain(selectedTrain.id);
+                                    }}
+                                    onReturnToDepot={() => {
+                                        if (onReturnToDepot) onReturnToDepot(selectedTrain.id);
+                                    }}
+                                    onResetEmergency={() => {
+                                        if (onResetEmergency) onResetEmergency(selectedTrain.id);
+                                    }}
+                                />
+                            </div>
+                        );
+                    })()}
                 </div>
 
-                {/* Right: Message Log Toggle & Fleet Status */}
-                <div className="pointer-events-auto flex flex-col items-end gap-4">
-                    <button 
-                        onClick={() => setShowLog(prev => !prev)}
-                        className={`w-12 h-12 rounded-full border flex items-center justify-center text-white transition-all shadow-xl hover:scale-105 active:scale-95 cursor-pointer ${
-                            showLog 
-                            ? 'bg-blue-600 border-blue-500 hover:bg-blue-500' 
-                            : 'bg-slate-900/90 backdrop-blur-md border-slate-700 hover:bg-slate-800 hover:border-blue-500'
-                        }`}
-                        title="Vis beskedhistorik"
-                    >
-                        <MessageSquare size={20} />
-                    </button>
-                    
+                {/* Right Operations Column (Row 2, Col 3) */}
+                <div className="col-start-3 row-start-2 flex flex-col items-end gap-4 pointer-events-auto self-start">
                     {/* Fleet Overview Panel */}
                     {fleet && (
-                        <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-2 w-48 pointer-events-auto text-sm animate-in slide-in-from-right duration-500">
+                        <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-2 w-48 text-sm animate-in slide-in-from-right duration-500">
                             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-2">
                                 <Train size={14} /> FLÅDESTATUS
                             </div>
@@ -551,7 +599,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
 
                     {/* Alarmer & Fejl Panel */}
                     {anomalies.filter(a => a.detected).length > 0 && (
-                        <div className="bg-slate-900/95 backdrop-blur-md p-4 rounded-2xl border border-rose-500/30 shadow-xl flex flex-col gap-2 w-64 pointer-events-auto text-xs animate-in slide-in-from-right duration-300">
+                        <div className="bg-slate-900/95 backdrop-blur-md p-4 rounded-2xl border border-rose-500/30 shadow-xl flex flex-col gap-2 w-64 text-xs animate-in slide-in-from-right duration-300">
                             <div className="font-bold text-rose-400 uppercase tracking-wider mb-1 flex items-center gap-1.5 animate-pulse">
                                 <AlertTriangle size={14} className="text-rose-500" /> ALARMER & FEJL
                             </div>
@@ -585,7 +633,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                                                             <span className="text-white font-mono">~{Math.ceil(anom.stewardTravelTime)}s</span>
                                                         </div>
                                                     ) : (
-                                                        <div className="flex justify-between items-center text-emerald-450 font-bold">
+                                                        <div className="flex justify-between items-center text-emerald-455 font-bold">
                                                             <span>Udbedrer fejl...</span>
                                                             <span className="text-white font-mono">~{Math.ceil(anom.stewardRepairTime ?? 0)}s</span>
                                                         </div>
@@ -623,100 +671,61 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* 3. Unified Notification Center (Toasts & Advisor) */}
-            <div className={`
-                fixed bottom-6 z-50 flex flex-col-reverse gap-3 items-end pointer-events-none max-w-sm w-full transition-all duration-300
-                ${showLog ? 'right-[340px]' : 'right-4'}
-            `}>
-                <Advisor message={advisorMessage} type={advisorType} />
-                <ToastContainer toasts={toasts} onRemove={removeToast} />
-            </div>
+                {/* Bottom Dock (Row 3, Col 2) */}
+                <div className="col-start-2 row-start-3 justify-self-center pointer-events-auto pb-4">
+                    {(game.tutorialStep ?? 0) !== 0 && (
+                        <div className="flex items-center gap-4 bg-slate-950/80 backdrop-blur-xl px-6 py-4 rounded-3xl border border-white/10 shadow-2xl transform transition-all hover:scale-105">
+                            <DockButton
+                                icon={<ShoppingCart size={24} />}
+                                label="BUTIK"
+                                color="blue"
+                                onClick={() => setShowShop(true)}
+                                disabled={(game.tutorialStep ?? 0) === 1}
+                                glow={(game.tutorialStep ?? 0) === 2}
+                            />
 
-            {/* 5. Main Content Area / Floating Panels */}
-            {selectedTrain && (() => {
-                const isSpawnBlocked = trains.some(t => t.state !== 'DEPOT' && t.position < 300);
-                return (
-                    <div className="absolute top-24 left-[288px] z-30 pointer-events-auto">
-                        <TrainDetails
-                            train={selectedTrain}
-                            onClose={() => setSelectedTrainId(null)}
-                            onSetManualOverride={onSetManualOverride}
-                            onSetManualCommands={onSetManualCommands}
-                            anomalies={anomalies.filter(a => a.trainId === selectedTrain.id && a.severity > 0)}
-                            maintenanceStrategy={game.maintenanceStrategy}
-                            isSpawnBlocked={isSpawnBlocked}
-                            stewardsCount={game.stewardsCount}
-                            stewardsBusy={game.stewardsBusy}
-                            onRepairAnomaly={(id) => {
-                                if (onResolveAnomaly) {
-                                    onResolveAnomaly(id);
-                                    addToast({ id: `fix_${Date.now()}`, type: 'SUCCESS', title: 'Tog Repareret', message: 'Systemet er nu fuldt funktionsdygtigt.' });
-                                }
-                            }}
-                            onDeploy={() => {
-                                if (game.budget < 500) {
-                                    addToast({ id: 'err', type: 'ERROR', title: 'Utilstrækkelige Midler', message: 'Det koster $500 at indsætte et tog.' });
-                                    return;
-                                }
-                                if (onDeployTrain) onDeployTrain(selectedTrain.id);
-                            }}
-                            onReturnToDepot={() => {
-                                if (onReturnToDepot) onReturnToDepot(selectedTrain.id);
-                            }}
-                            onResetEmergency={() => {
-                                if (onResetEmergency) onResetEmergency(selectedTrain.id);
-                            }}
-                        />
-                    </div>
-                );
-            })()}
+                            <DockButton
+                                icon={<Database size={24} />}
+                                label={isDataLocked ? "LÅST (50 PAX)" : "DATA"}
+                                color="orange"
+                                onClick={() => setShowData(true)}
+                                disabled={(game.tutorialStep ?? 0) === 1 ? false : ((game.tutorialStep ?? 0) < 3 || isDataLocked)}
+                                glow={(game.tutorialStep ?? 0) === 1 || (hasFailedTrain && !showData)}
+                            />
 
-            {/* 6. Bottom Dock (Controls) */}
-            {(game.tutorialStep ?? 0) !== 0 && (
-                <div className="absolute bottom-0 left-0 w-full p-6 z-20 flex justify-center items-end pointer-events-none">
-                    <div className="pointer-events-auto flex items-center gap-4 bg-slate-950/80 backdrop-blur-xl px-6 py-4 rounded-3xl border border-white/10 shadow-2xl transform transition-all hover:scale-105">
+                            <div className="w-px h-12 bg-white/10 mx-2"></div>
 
-                        <DockButton
-                            icon={<ShoppingCart size={24} />}
-                            label="BUTIK"
-                            color="blue"
-                            onClick={() => setShowShop(true)}
-                            disabled={(game.tutorialStep ?? 0) === 1}
-                            glow={(game.tutorialStep ?? 0) === 2}
-                        />
+                            <DockButton
+                                icon={<Users size={24} />}
+                                label="MYLDRETID"
+                                color="yellow"
+                                onClick={() => onScenarioTrigger && onScenarioTrigger('MORNING_RUSH')}
+                                disabled={(game.tutorialStep ?? 0) < 3}
+                            />
 
-                        <DockButton
-                            icon={<Database size={24} />}
-                            label={isDataLocked ? "LÅST (50 PAX)" : "DATA"}
-                            color="orange"
-                            onClick={() => setShowData(true)}
-                            disabled={(game.tutorialStep ?? 0) === 1 ? false : ((game.tutorialStep ?? 0) < 3 || isDataLocked)}
-                            glow={(game.tutorialStep ?? 0) === 1 || (hasFailedTrain && !showData)}
-                        />
-
-                        <div className="w-px h-12 bg-white/10 mx-2"></div>
-
-                        <DockButton
-                            icon={<Users size={24} />}
-                            label="MYLDRETID"
-                            color="yellow"
-                            onClick={() => onScenarioTrigger && onScenarioTrigger('MORNING_RUSH')}
-                            disabled={(game.tutorialStep ?? 0) < 3}
-                        />
-
-                        <DockButton
-                            icon={<AlertTriangle size={24} />}
-                            label="NØDSTOP"
-                            color="red"
-                            onClick={() => onEmergencyTrigger && onEmergencyTrigger()}
-                            danger
-                            disabled={(game.tutorialStep ?? 0) < 3}
-                        />
-                    </div>
+                            <DockButton
+                                icon={<AlertTriangle size={24} />}
+                                label="NØDSTOP"
+                                color="red"
+                                onClick={() => onEmergencyTrigger && onEmergencyTrigger()}
+                                danger
+                                disabled={(game.tutorialStep ?? 0) < 3}
+                            />
+                        </div>
+                    )}
                 </div>
-            )}
+
+                {/* Notification Center (Row 3, Col 3) */}
+                <div className={`
+                    col-start-3 row-start-3 justify-self-end flex flex-col-reverse gap-3 items-end pointer-events-none w-full transition-all duration-300 pb-4
+                    ${showLog ? '-translate-x-[340px]' : 'translate-x-0'}
+                `}>
+                    <Advisor message={advisorMessage} type={advisorType} />
+                    <ToastContainer toasts={toasts} onRemove={removeToast} />
+                </div>
+
+            </div>
 
             {/* Modals */}
             {showShop && (

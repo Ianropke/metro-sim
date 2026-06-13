@@ -54,7 +54,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
     ];
 
     return (
-        <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-[1000] flex items-center justify-center p-4">
             <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-6 w-[650px] shadow-2xl flex flex-col max-h-[90vh]">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-black text-slate-100 flex items-center gap-2 tracking-tight">

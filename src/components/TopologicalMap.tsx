@@ -109,33 +109,33 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
                         g.lineTo(dimensions.width, gridY);
                     }
                     
-                    // Eastbound Track (Direction = 1) at y = 275
+                    // Eastbound Track (Direction = 1) at y = 240
                     // Outer glow
                     g.lineStyle(6, 0x1e3a8a, 0.3);
-                    g.moveTo(50, 275);
-                    g.lineTo(dimensions.width - 50, 275);
+                    g.moveTo(50, 240);
+                    g.lineTo(dimensions.width - 50, 240);
                     // Inner wire
                     g.lineStyle(2, 0x3b82f6, 0.8);
-                    g.moveTo(50, 275);
-                    g.lineTo(dimensions.width - 50, 275);
+                    g.moveTo(50, 240);
+                    g.lineTo(dimensions.width - 50, 240);
 
-                    // Westbound Track (Direction = -1) at y = 325
+                    // Westbound Track (Direction = -1) at y = 360
                     // Outer glow
                     g.lineStyle(6, 0x065f46, 0.3);
-                    g.moveTo(50, 325);
-                    g.lineTo(dimensions.width - 50, 325);
+                    g.moveTo(50, 360);
+                    g.lineTo(dimensions.width - 50, 360);
                     // Inner wire
                     g.lineStyle(2, 0x10b981, 0.8);
-                    g.moveTo(50, 325);
-                    g.lineTo(dimensions.width - 50, 325);
+                    g.moveTo(50, 360);
+                    g.lineTo(dimensions.width - 50, 360);
 
-                    // Depot Track at y = 375
+                    // Depot Track at y = 420
                     g.lineStyle(6, 0x475569, 0.3); // slate-600
-                    g.moveTo(50, 375);
-                    g.lineTo(dimensions.width - 50, 375);
+                    g.moveTo(50, 420);
+                    g.lineTo(dimensions.width - 50, 420);
                     g.lineStyle(2, 0x64748b, 0.8); // slate-500
-                    g.moveTo(50, 375);
-                    g.lineTo(dimensions.width - 50, 375);
+                    g.moveTo(50, 420);
+                    g.lineTo(dimensions.width - 50, 420);
                     
                     // Connectors/catenary poles at stations
                     stations.forEach(st => {
@@ -144,8 +144,8 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
                         const alpha = isLocked ? 0.2 : 0.5;
                         const x = 50 + (st.position / 5000) * (dimensions.width - 100);
                         g.lineStyle(1, color, alpha);
-                        g.moveTo(x, 260);
-                        g.lineTo(x, 340);
+                        g.moveTo(x, 240);
+                        g.lineTo(x, 360);
                     });
                 }} />
 
@@ -212,10 +212,10 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
                 {/* 3. Trains Drawing */}
                 {trains.map(train => {
                     let x = 50 + (train.position / 5000) * (dimensions.width - 100);
-                    let y = train.direction === 1 ? 275 : 325;
+                    let y = train.direction === 1 ? 240 : 360;
                     
                     if (train.state === 'DEPOT') {
-                        y = 375;
+                        y = 420;
                         const depotIndex = trains.filter(t => t.state === 'DEPOT').findIndex(t => t.id === train.id);
                         x = 50 + (depotIndex * 90); // Space them out in the depot
                     }

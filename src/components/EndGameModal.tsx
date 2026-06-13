@@ -18,7 +18,7 @@ export const EndGameModal: React.FC<EndGameModalProps> = ({
     const isVictory = status === 'VICTORY';
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm">
             <div className={`p-8 rounded-xl max-w-lg w-full text-center border-2 shadow-2xl ${isVictory ? 'border-emerald-500 bg-slate-900/90' : 'border-rose-500 bg-slate-900/90'}`}>
                 
                 <h1 className={`text-5xl font-black mb-4 tracking-tight ${isVictory ? 'text-emerald-400' : 'text-rose-500'}`}>

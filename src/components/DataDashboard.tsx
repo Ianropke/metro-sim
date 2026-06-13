@@ -55,7 +55,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
     onStartResearch
 }) => {
     return (
-        <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col p-6 font-mono text-slate-200">
+        <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md z-[1000] flex flex-col p-6 font-mono text-slate-200">
             {/* Header */}
             <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
                 <h2 className="text-2xl font-bold text-orange-500 flex items-center gap-2">
