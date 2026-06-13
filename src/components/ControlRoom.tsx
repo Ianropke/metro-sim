@@ -197,7 +197,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Budget</span>
-                            <span className={`text - xl font - black ${game.budget < 0 ? 'text-rose-400' : 'text-white'} `}>
+                            <span className={`text-xl font-black font-mono ${game.budget < 0 ? 'text-rose-400' : 'text-white'}`}>
                                 ${game.budget.toLocaleString()}
                             </span>
                         </div>
@@ -210,7 +210,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fans</span>
-                            <span className="text-xl font-black text-white">
+                            <span className="text-xl font-black font-mono text-white">
                                 {Math.round(game.satisfaction)}%
                             </span>
                         </div>
@@ -223,7 +223,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Efficiency</span>
-                            <span className="text-xl font-black text-white">
+                            <span className="text-xl font-black font-mono text-white">
                                 {(game.efficiency * 100).toFixed(0)}%
                             </span>
                         </div>

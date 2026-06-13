@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Stage, Container, Graphics, Text } from '@pixi/react';
 import { TextStyle } from 'pixi.js';
 
@@ -24,7 +24,22 @@ interface TopologicalMapProps {
 }
 
 export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations, onTrainClick }) => {
-    
+    const [dimensions, setDimensions] = useState({
+        width: window.innerWidth,
+        height: window.innerHeight
+    });
+
+    useEffect(() => {
+        const handleResize = () => {
+            setDimensions({
+                width: window.innerWidth,
+                height: window.innerHeight
+            });
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // Label TextStyle
     const stationLabelStyle = new TextStyle({
         fontFamily: 'monospace',
@@ -60,7 +75,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
     });
 
     return (
-        <Stage width={window.innerWidth} height={window.innerHeight} options={{ backgroundAlpha: 1, backgroundColor: 0x090d16 }}>
+        <Stage width={dimensions.width} height={dimensions.height} options={{ backgroundAlpha: 1, backgroundColor: 0x090d16 }}>
 
             <Container x={0} y={0}>
                 {/* 1. Double Tracks Drawing */}
@@ -70,38 +85,38 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
                     // Subtle background HUD grid
                     g.lineStyle(1, 0x1e293b, 0.15);
                     const gridSpacing = 40;
-                    for (let gridX = 0; gridX < window.innerWidth; gridX += gridSpacing) {
+                    for (let gridX = 0; gridX < dimensions.width; gridX += gridSpacing) {
                         g.moveTo(gridX, 0);
-                        g.lineTo(gridX, window.innerHeight);
+                        g.lineTo(gridX, dimensions.height);
                     }
-                    for (let gridY = 0; gridY < window.innerHeight; gridY += gridSpacing) {
+                    for (let gridY = 0; gridY < dimensions.height; gridY += gridSpacing) {
                         g.moveTo(0, gridY);
-                        g.lineTo(window.innerWidth, gridY);
+                        g.lineTo(dimensions.width, gridY);
                     }
                     
                     // Eastbound Track (Direction = 1) at y = 275
                     // Outer glow
                     g.lineStyle(6, 0x1e3a8a, 0.3);
                     g.moveTo(50, 275);
-                    g.lineTo(window.innerWidth - 50, 275);
+                    g.lineTo(dimensions.width - 50, 275);
                     // Inner wire
                     g.lineStyle(2, 0x3b82f6, 0.8);
                     g.moveTo(50, 275);
-                    g.lineTo(window.innerWidth - 50, 275);
+                    g.lineTo(dimensions.width - 50, 275);
 
                     // Westbound Track (Direction = -1) at y = 325
                     // Outer glow
                     g.lineStyle(6, 0x065f46, 0.3);
                     g.moveTo(50, 325);
-                    g.lineTo(window.innerWidth - 50, 325);
+                    g.lineTo(dimensions.width - 50, 325);
                     // Inner wire
                     g.lineStyle(2, 0x10b981, 0.8);
                     g.moveTo(50, 325);
-                    g.lineTo(window.innerWidth - 50, 325);
+                    g.lineTo(dimensions.width - 50, 325);
                     
                     // Connectors/catenary poles at stations
                     stations.forEach(st => {
-                        const x = 50 + (st.position / 5000) * (window.innerWidth - 100);
+                        const x = 50 + (st.position / 5000) * (dimensions.width - 100);
                         g.lineStyle(1, 0x334155, 0.5);
                         g.moveTo(x, 260);
                         g.lineTo(x, 340);
@@ -110,7 +125,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
 
                 {/* 2. Stations Drawing */}
                 {stations.map(st => {
-                    const x = 50 + (st.position / 5000) * (window.innerWidth - 100);
+                    const x = 50 + (st.position / 5000) * (dimensions.width - 100);
                     return (
                         <Container key={st.name} x={x} y={300}>
                             {/* Clean schematic station dot */}
@@ -149,7 +164,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
 
                 {/* 3. Trains Drawing */}
                 {trains.map(train => {
-                    const x = 50 + (train.position / 5000) * (window.innerWidth - 100);
+                    const x = 50 + (train.position / 5000) * (dimensions.width - 100);
                     const y = train.direction === 1 ? 275 : 325;
                     
                     return (
