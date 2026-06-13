@@ -58,8 +58,9 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
             <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-6 w-[650px] shadow-2xl flex flex-col max-h-[90vh]">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-black text-slate-100 flex items-center gap-2 tracking-tight">
-                        <ShoppingCart className="text-blue-500" /> OPGRADERINGER & BUTIK
+                        <Train className="text-blue-500" /> OPGRADERINGER & INDKØB
                     </h2>
+
                     <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl font-bold transition-colors">&times;</button>
                 </div>
 

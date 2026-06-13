@@ -3,9 +3,9 @@ import { TopologicalMap } from './TopologicalMap';
 import { TrainDetails } from './TrainDetails';
 import { UpgradeShop } from './UpgradeShop';
 import { DataDashboard } from './DataDashboard';
-import { AlertTriangle, ShoppingCart, Users, Database, DollarSign, Menu, TrendingUp, Smile, Train, MessageSquare } from 'lucide-react';
+import { AlertTriangle, Users, Database, DollarSign, Menu, TrendingUp, Smile, Train, MessageSquare, Microscope, Plus } from 'lucide-react';
 import { type Toast, ToastContainer } from './ToastNotification';
-import { Advisor } from './Advisor';
+
 
 interface TrainStateProps {
     id: string;
@@ -411,13 +411,14 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                         {game.tutorialStep === 2 && (
                             <div className="flex flex-col gap-1">
                                 <div className="text-blue-400 font-bold">Fase 2: Udvid flåden</div>
-                                <div className="text-slate-400 leading-relaxed mb-0.5">Driften skal udvides! Åbn BUTIK-knappen i bunden, og køb et nyt tog ($8.000).</div>
+                                <div className="text-slate-400 leading-relaxed mb-0.5">Driften skal udvides! Åbn INDKØB-knappen i bunden, og køb et nyt tog ($8.000).</div>
                                 <div className="flex items-center gap-2 text-[10px] font-semibold text-blue-400 font-mono">
                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                                    <span>☐ Køb nyt tog i BUTIK</span>
+                                    <span>☐ Køb nyt tog i INDKØB</span>
                                 </div>
                             </div>
                         )}
+
                         {(game.tutorialStep ?? 0) >= 3 && (
                             <div className="flex flex-col gap-1">
                                 <div className="text-emerald-400 font-bold mb-0.5">Fase 3: Fri leg (Mål)</div>
@@ -674,8 +675,13 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                     {(game.tutorialStep ?? 0) !== 0 && (
                         <div className="flex items-center gap-4 bg-slate-950/80 backdrop-blur-xl px-6 py-4 rounded-3xl border border-white/10 shadow-2xl transform transition-all hover:scale-105">
                             <DockButton
-                                icon={<ShoppingCart size={24} />}
-                                label="BUTIK"
+                                icon={
+                                    <div className="relative">
+                                        <Train size={24} />
+                                        <span className="absolute -top-1.5 -right-1.5 text-[9px] font-black bg-blue-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center border border-slate-900">+</span>
+                                    </div>
+                                }
+                                label="INDKØB"
                                 color="blue"
                                 onClick={() => setShowShop(true)}
                                 disabled={(game.tutorialStep ?? 0) === 1}
@@ -683,13 +689,14 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                             />
 
                             <DockButton
-                                icon={<Database size={24} />}
-                                label={isDataLocked ? "LÅST (50 PAX)" : "DATA"}
+                                icon={<Microscope size={24} />}
+                                label={isDataLocked ? "LÅST (50 PAX)" : "FORSKNING"}
                                 color="orange"
                                 onClick={() => setShowData(true)}
                                 disabled={(game.tutorialStep ?? 0) === 1 ? false : ((game.tutorialStep ?? 0) < 3 || isDataLocked)}
                                 glow={(game.tutorialStep ?? 0) === 1 || (hasFailedTrain && !showData)}
                             />
+
 
                             <div className="w-px h-12 bg-white/10 mx-2"></div>
 
@@ -718,9 +725,9 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                     col-start-3 row-start-3 justify-self-end flex flex-col-reverse gap-3 items-end pointer-events-none w-full transition-all duration-300 pb-4
                     ${showLog ? '-translate-x-[340px]' : 'translate-x-0'}
                 `}>
-                    <Advisor message={advisorMessage} type={advisorType} />
                     <ToastContainer toasts={toasts} onRemove={removeToast} />
                 </div>
+
 
             </div>
 

@@ -128,35 +128,39 @@ For at rydde op i brugerfladen og forhindre overlappende elementer (især på mi
 
 ## 10. UI/UX Refaktorering & 4-Zone Grid Layout
 
-Vi har udført en komplet arkitektonisk og visuel refaktorering af brugerfladen for at løse problemer med renderingsoverlap, inkonsistent modalplacering, z-index konflikter og alarmredundans:
+Vi har udført en komplet arkitektonisk og visuel refaktorering af brugerfladen for at løse problemer med renderingsoverlap, inkonsistent modalplacering, z-index konflikter, alarmredundans og uhensigtsmæssig ikonografi:
+
+### Tycoon-terminologi & Ny ikonografi i Bund-docken (Model A)
+For at fjerne abstrakte IT-begreber og erstatte dem med konventionelle spilmekaniske udtryk, har vi opdateret bund-docken:
+*   **DATA -> FORSKNING (Microscope-ikon):** Erstatter det gamle database-diskikon. Knappen åbner nu **Forskningscenter** modalen (tidligere Data-dashboardet), hvor spilleren låser op for prædiktive vedligeholdelsesmodeller og F&U.
+*   **BUTIK -> INDKØB (Tog-ikon med '+'):** Erstatter den klassiske indkøbsvogn. Knappen åbner **Opgraderinger & Indkøb** modalen, hvor spilleren udvider flåden og installerer forbedrede døre.
+*   **Modal overskrifter opdateret:** Modalerne har fået matchende, rensede titler:
+    *   *UpgradeShop* hedder nu **OPGRADERINGER & INDKØB** (med Tog-ikon).
+    *   *DataDashboard* hedder nu **Forskningscenter** (med Mikroskop-ikon).
+*   **Tutorial sprog:** Tutorial-teksten i venstre panel er opdateret til at henvise til `INDKØB` i stedet for `BUTIK`.
+
+### Eliminering af redundans & permanent sletning af Advisor
+Vi har fjernet de modstridende og overlappende instruktioner, som skabte kognitive blindgyder:
+*   **Permanent sletning of Advisor (Tutorial-boksen):** Komponenten, der renderede den store tutorial-boble i nederste højre hjørne, er permanent slettet fra [ControlRoom.tsx](file:///Users/ianropke/.gemini/antigravity/scratch/metro-sim/src/components/ControlRoom.tsx).
+*   **Mål-styret Onboarding:** Onboarding-logik og instruktioner routes nu udelukkende til det overskuelige Opgave-panel i venstre side, så spilleren ikke distraheres af modstridende anvisninger i hjørnerne.
+*   **Pulsfejl udbedring:** Knappen `SEND STEWARD` i højre panel begynder at pulse rødt med det samme, der opstår en dørfejl eller anomali, hvilket visuelt guider spilleren direkte til handlingen uden brug af tung tutorial-tekst.
 
 ### 4-Zone CSS Grid layout
 Hovedbrugerfladen i [ControlRoom.tsx](file:///Users/ianropke/.gemini/antigravity/scratch/metro-sim/src/components/ControlRoom.tsx) er genopbygget med et robust 3x3 CSS Grid (`grid-cols-[280px_1fr_280px] grid-rows-[auto_1fr_auto]`), som låser alle paneler fast i deres respektive zoner:
 *   **HUD (Top Zone):** Viser spiltid, budget, passager-tilfredshed, energieffektivitet og passagertal. Det midterste skærmområde under HUD er efterladt frit, så spillets kort kan ses og klikkes.
 *   **Venstre Panel (Information Zone):** Viser missionsopgaver (Phase-by-Phase Objectives) og personalestatus (stewards, analytikere, udkald).
-*   **Højre Panel (Drift Zone):** Viser flådestatus og live "Alarmer & Fejl" med direkte knapper til udsendelse af stewards.
-*   **Dock (Bund Zone):** Indeholder de primære strategiske handlinger (BUTIK, DATA, MYLDRETID, NØDSTOP) centreret i bunden.
+*   **Højre Panel (Drift Zone):** Viser flådestatus og live "Alarmer & Fejl" med direkte knapper til udbedring.
+*   **Dock (Bund Zone):** Indeholder de primære strategiske handlinger (INDKØB, FORSKNING, MYLDRETID, NØDSTOP) centreret i bunden.
 *   **Pointer Events styring:** Canvas-spillekortet og DOM-UI'et er fuldstændigt adskilt. Ved at anvende `pointer-events-none` på grid-containeren og `pointer-events-auto` på de enkelte interaktive paneler, kan spilleren uforstyrret interagere med togene på kortet.
-
-### Eliminering af redundans & alarmtræthed
-Vi har fjernet de overlappende, redundante advarsler for at beskytte spillerens opmærksomhed:
-*   **Fjernelse af System Advarsel:** Den store, røde taleboble-advarsel i bunden (`Advisor` med type `WARNING`) er helt fjernet.
-*   **Ren alarm-routing:** Actionable fejl (som udbedring af togfejl) routes nu *kun* til højre panel ("Alarmer & Fejl").
-*   **Mål-routing:** Venstre panel viser kun spillets overordnede mål og tutorial-trin uden forklarende instruktioner om alarmknapper.
-*   **Hændelses-routing:** Mindre systembeskeder sendes som diskrete toasts, der forsvinder automatisk.
 
 ### Glassmorphism & Kompakt Data (Visuel Overhaling)
 Panelerne har fået et futuristisk dashboard-udseende inspireret af professionelle dataværktøjer:
 *   **Glassmorphic paneler:** Panelerne og HUD-boblerne bruger nu en semi-transparent baggrund med et kraftigt sløringsfilter (`backdrop-filter: blur(12px)`) og en tynd lys grænse (`border: 1px solid rgba(255, 255, 255, 0.1)`). Dette tillader, at metrokortets linjer anes bagved panelerne og udvider skærmens visuelle dybde.
 *   **Kompakt layout:** Padding og spalteafstænde er minimeret, og personaledata er yderligere forkortet (f.eks. `Stewards: 1/1` i stedet for `Stewards: 1 / 1 ledige`, samt `Analytikere: X` og `Uddannelse: Lvl Y`).
 
-### Mikro-interaktioner (Pulserende alarmknapper)
-For at fange spillerens øjne instinktivt uden at anvende forstyrrende tekstbeskeder:
-*   **Pulserende fejlknapper:** Når der opstår en kritisk fejl (Nedbrud), begynder `SEND STEWARD`-knappen i højre panel at pulse glødende rødt ved hjælp af en CSS-nøgleanimation (`animate-pulse-error`), som gradvist skifter baggrundsfarve og spreder en blød skyggeudstråling udad.
-
 ### Eliminering af overlap (TopologicalMap.tsx)
 For at sikre, at togene ikke tegnes oveni stationsteksterne på driftskortet, har vi udført en koordinatforskydning i [TopologicalMap.tsx](file:///Users/ianropke/.gemini/antigravity/scratch/metro-sim/src/components/TopologicalMap.tsx):
-*   **Tog og spor:** Det østgående spor er rykket op til `y = 240` (fra 275). Det vestgående spor er rykket ned til `y = 360` (fra 325). Depotet er flyttet til `y = 420` (fra 375).
+*   **Tog og spor:** Det østgående spor er rykket op til `y = 240` (fra 275). Det vestgående spor er rykket ned til `y = 360` (fra 325). Depotet er flyttet to `y = 420` (fra 375).
 *   **Stationer:** Stationerne forbliver centreret ved `y = 300`.
 *   **Tekst og tællere:** Stationsnavnene tegnes ved `y = 320` (mellem de to hovedspor), og passagerantallet tegnes ved `y = 280`. Dette efterlader rigelig lodret luft og sikrer en fuldstændig ren, professionel rendering uden grafisk støj.
 
@@ -164,7 +168,6 @@ For at sikre, at togene ikke tegnes oveni stationsteksterne på driftskortet, ha
 For at sikre, at popups og modaler ikke blandes sammen, har vi defineret et stramt z-index hierarki i hele projektet:
 *   `z-0` til `z-10`: Spillekort (Pixi Canvas) og baggrunds-layers.
 *   `z-100`: Faste UI-paneler og HUD-elementer samt tog-detaljekortet.
-*   `z-500`: Advarsler (`Advisor`) og Toasts (notifikationer).
+*   `z-500`: Advarsler og Toasts (notifikationer).
 *   `z-900`: Beskedhistorik-skuffen (`showLog`).
 *   `z-1000`: Fuldskærmsmodaler som `UpgradeShop`, `DataDashboard` og `EndGameModal` (konkurs/sejr-skærme).
-

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Database, Server, Activity, Brain, ShieldAlert, Cpu } from 'lucide-react';
+import { Microscope, Server, Activity, Brain, ShieldAlert, Cpu } from 'lucide-react';
+
 
 interface DataDashboardProps {
     logs: { id: string, tag: string, value: string | number | boolean, timestamp: number }[];
@@ -59,8 +60,9 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
             {/* Header */}
             <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
                 <h2 className="text-2xl font-bold text-orange-500 flex items-center gap-2">
-                    <Database /> Metro Data Lake <span className="text-xs bg-orange-900/30 text-orange-300 px-2 py-0.5 rounded border border-orange-500/30">DATABRICKS CONNECTED</span>
+                    <Microscope /> Forskningscenter <span className="text-xs bg-orange-900/30 text-orange-300 px-2 py-0.5 rounded border border-orange-500/30">DATABRICKS CONNECTED</span>
                 </h2>
+
                 <button onClick={onClose} className="text-slate-400 hover:text-white">&times;</button>
             </div>
 
