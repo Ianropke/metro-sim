@@ -13,6 +13,7 @@ export class SimulationLoop {
 
     private lastTime: number = 0;
     private accumulator: number = 0;
+    private accumulatedEnergyKWh: number = 0;
     private readonly PHYSICS_DT = 0.02; // 20ms (50Hz)
 
     constructor() {
@@ -27,9 +28,12 @@ export class SimulationLoop {
     private initScenario() {
         // Create Stations
         this.stations.push(new Station('STN01', 'Vanløse', 0));
-        this.stations.push(new Station('STN02', 'Flintholm', 1200));
-        this.stations.push(new Station('STN03', 'Lindevang', 2400));
-        this.stations.push(new Station('STN04', 'Nørreport', 5000));
+        this.stations.push(new Station('STN02', 'Flintholm', 800));
+        this.stations.push(new Station('STN03', 'Lindevang', 1600));
+        this.stations.push(new Station('STN04', 'Fasanvej', 2400));
+        this.stations.push(new Station('STN05', 'Frederiksberg', 3200));
+        this.stations.push(new Station('STN06', 'Forum', 4100));
+        this.stations.push(new Station('STN07', 'Nørreport', 5000));
 
         // Create Trains
         const t1 = new Train('TRN01', 100);
@@ -37,51 +41,38 @@ export class SimulationLoop {
         this.trains.push(t1);
         this.zoneController.registerTrain(t1);
 
-        const t2 = new Train('TRN02', 2000);
-        t2.stateMachine.transitionTo('AUTO_DRIVE');
-        this.trains.push(t2);
-        this.zoneController.registerTrain(t2);
-
         // Run headway signaling immediately to establish initial LMAs before simulation ticks
         this.zoneController.updateHeadways();
     }
 
-    public start() {
-        this.lastTime = performance.now();
-        requestAnimationFrame(this.loop.bind(this));
-    }
 
-    public update(dt: number) {
-        // Update signaling LMA values BEFORE updating physics to prevent out-of-bounds safety trips
-        this.zoneController.updateHeadways();
-        this.updatePhysics(dt);
-        this.updateLogic(dt);
-    }
-
-    private loop(timestamp: number) {
-        const frameTime = (timestamp - this.lastTime) / 1000;
-        this.lastTime = timestamp;
-        this.accumulator += frameTime;
+    public tick(realDt: number, speedMultiplier: number = 10) {
+        const gameDt = realDt * speedMultiplier;
+        this.accumulator += gameDt;
 
         // Physics Loop (Fixed Step)
         while (this.accumulator >= this.PHYSICS_DT) {
+            const isExtended = this.gameManager.activeUpgrades.has('ROUTE_EXTENSION_1');
+            const MAX_POS = isExtended ? 5000 : 2400; // 5000 is Nørreport, 2400 is Frederiksberg
+            this.zoneController.updateHeadways(MAX_POS);
             this.updatePhysics(this.PHYSICS_DT);
             this.accumulator -= this.PHYSICS_DT;
         }
 
-        // Logic Loop (could be throttled, but running every frame for now)
-        this.updateLogic(frameTime);
-
-        requestAnimationFrame(this.loop.bind(this));
+        // Logic Loop
+        this.updateLogic(gameDt);
     }
 
     private updatePhysics(dt: number) {
         let totalPower = 0;
 
+        const isExtended = this.gameManager.activeUpgrades.has('ROUTE_EXTENSION_1');
+        const MAX_POS = isExtended ? 5000 : 2400; // 5000 is Nørreport, 2400 is Frederiksberg
+
         // Update all trains
         this.trains.forEach(train => {
             // Update physics, controller and doors
-            train.update(dt, 0, this.stations, this.gameManager);
+            train.update(dt, 0, this.stations, this.gameManager, MAX_POS);
 
             // Calculate actual power consumption (Motoring minus Regen)
             let tractiveForce = 0;
@@ -130,20 +121,32 @@ export class SimulationLoop {
 
         // Update Game Manager (Energy)
         // Power (kW) * dt (s) / 3600 = kWh
-        this.gameManager.update(dt, 0, (totalPower * dt) / 3600);
+        this.accumulatedEnergyKWh += (totalPower * dt) / 3600;
     }
 
     private updateLogic(dt: number) {
+        // Auto-reset emergency brakes on trains repaired by stewards
+        if (this.gameManager.resolvedTrainIds && this.gameManager.resolvedTrainIds.length > 0) {
+            this.gameManager.resolvedTrainIds.forEach(trainId => {
+                const train = this.trains.find(t => t.id === trainId);
+                if (train) {
+                    train.isEmergencyBrake = false;
+                    if (train.stateMachine.currentState === 'EMERGENCY') {
+                        train.stateMachine.transitionTo('AUTO_DRIVE');
+                    }
+                }
+            });
+            this.gameManager.resolvedTrainIds = []; // clear queue
+        }
+
         // Check if BUY_TRAIN upgrade is pending
         if (this.gameManager.activeUpgrades.has('BUY_TRAIN')) {
             this.gameManager.activeUpgrades.delete('BUY_TRAIN'); // clear it
             const newTrainId = `TRN0${this.trains.length + 1}`;
-            
-            // Spawn at Vanløse (0m) or halfway (2000m)
-            const spawnPos = this.trains.length % 2 === 0 ? 0 : 2000;
-            const newTrain = new Train(newTrainId, spawnPos);
+            // Spawn in the Depot
+            const newTrain = new Train(newTrainId, 0);
             newTrain.direction = 1;
-            newTrain.stateMachine.transitionTo('AUTO_DRIVE');
+            newTrain.stateMachine.transitionTo('DEPOT');
             this.trains.push(newTrain);
             this.zoneController.registerTrain(newTrain);
             
@@ -161,18 +164,22 @@ export class SimulationLoop {
             }, 5000);
         }
 
-        // Update Signaling
-        this.zoneController.updateHeadways();
-
         // Update Stations/Pax
         let totalWaiting = 0;
+        const isExtended = this.gameManager.activeUpgrades.has('ROUTE_EXTENSION_1');
         this.stations.forEach(st => {
-            st.update(dt);
+            // Only generate passengers if station is unlocked or part of the base 4
+            const isBaseStation = st.position <= 2400;
+            
+            if (isBaseStation || isExtended) {
+                st.update(dt, this.gameManager.timeOfDay);
+            }
             totalWaiting += st.passengerCount;
         });
 
-        // Update Game Manager (Satisfaction)
-        this.gameManager.update(dt, totalWaiting, 0);
+        // Update Game Manager (Satisfaction & Energy)
+        this.gameManager.update(dt, totalWaiting, this.accumulatedEnergyKWh);
+        this.accumulatedEnergyKWh = 0; // reset
         this.gameManager.checkForEvents(dt);
         this.gameManager.checkForAnomalies(dt, this.trains);
     }
@@ -198,13 +205,42 @@ export class SimulationLoop {
             })),
             alarms: this.scada.getActiveAlarms(),
             game: {
+                timeOfDay: this.gameManager.timeOfDay,
                 satisfaction: this.gameManager.passengerSatisfaction,
                 efficiency: this.gameManager.energyEfficiency,
                 budget: this.gameManager.budget,
                 events: this.gameManager.activeEvents,
                 anomalies: this.gameManager.anomalies,
                 maintenanceStrategy: this.gameManager.maintenanceStrategy,
-                activeUpgrades: this.gameManager.activeUpgrades
+                activeUpgrades: this.gameManager.activeUpgrades,
+                gameStatus: this.gameManager.gameStatus,
+                totalPassengersTransported: this.gameManager.totalPassengersTransported,
+                moneyPopups: this.gameManager.moneyPopups,
+                tutorialStep: this.gameManager.tutorialStep,
+                dataLakeSavings: this.gameManager.dataLakeSavings,
+                stewardsCount: this.gameManager.stewardsCount,
+                stewardsBusy: this.gameManager.stewardsBusy,
+                stewardTrainingLevel: this.gameManager.stewardTrainingLevel,
+                automatedPIDS: this.gameManager.automatedPIDS,
+                isAnnouncementActive: this.gameManager.isAnnouncementActive,
+                announcementTimer: this.gameManager.announcementTimer,
+                sensorLevel: this.gameManager.sensorLevel,
+                dataAnalystsCount: this.gameManager.dataAnalystsCount,
+                hasARIIS: this.gameManager.hasARIIS,
+                hasTRES: this.gameManager.hasTRES,
+                stewardSpecialTraining: this.gameManager.stewardSpecialTraining,
+                autoStewardCall: this.gameManager.autoStewardCall,
+                unlockedStrategies: this.gameManager.unlockedStrategies,
+                activeResearch: this.gameManager.activeResearch,
+                researchProgress: this.gameManager.researchProgress,
+                researchDuration: this.gameManager.researchDuration,
+                researchTimeRemaining: this.gameManager.researchTimeRemaining
+            },
+            fleet: {
+                total: this.trains.length,
+                active: this.trains.filter(t => t.stateMachine.currentState !== 'DEPOT').length,
+                depot: this.trains.filter(t => t.stateMachine.currentState === 'DEPOT').length,
+                broken: this.gameManager.anomalies.filter(a => a.failed).length
             },
             logs: this.scada.telemetryLog
         };

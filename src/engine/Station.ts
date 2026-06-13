@@ -15,9 +15,9 @@ export class Station {
         this.generator = new PassengerGenerator();
     }
 
-    public update(dt: number) {
+    public update(dt: number, timeOfDay: number) {
         // Generate new passengers waiting on platform
-        this.passengerCount += this.generator.generatePassengers(dt);
+        this.passengerCount += this.generator.generatePassengers(dt, timeOfDay);
     }
 
     /**

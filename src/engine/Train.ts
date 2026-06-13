@@ -14,13 +14,15 @@ interface Anomaly {
     severity: number;
     detected: boolean;
     failed?: boolean;
+    timeSinceFailure?: number;
 }
 
 interface GameManagerLite {
     activeUpgrades: Set<string>;
-    addScore: (score: number) => void;
     anomalies: Anomaly[];
+    addScore(paxCount: number, positionX?: number): void;
     passengerSatisfaction: number;
+    totalPassengersTransported?: number;
 }
 
 export class Train {
@@ -48,6 +50,7 @@ export class Train {
     public dwellTimer: number = 0.0;
     public totalDwellTime: number = 0.0;
     public passengerExchangeDone: boolean = false;
+    public isReturningToDepot: boolean = false;
 
     // Manual Override
     public isManualOverride: boolean = false;
@@ -71,22 +74,23 @@ export class Train {
     public getTargetStation(stations: Station[]): Station | null {
         const pos = this.physics.position;
         if (this.direction === 1) {
-            // Forward: first station with position > current position
-            const ahead = stations.filter(s => s.position > pos).sort((a, b) => a.position - b.position);
+            // Forward: first station with position > current position + 0.05m buffer
+            const ahead = stations.filter(s => s.position > pos + 0.05).sort((a, b) => a.position - b.position);
             return ahead[0] || null;
         } else {
-            // Backward: first station with position < current position
-            const behind = stations.filter(s => s.position < pos).sort((a, b) => b.position - a.position);
+            // Backward: first station with position < current position - 0.05m buffer
+            const behind = stations.filter(s => s.position < pos - 0.05).sort((a, b) => b.position - a.position);
             return behind[0] || null;
         }
     }
 
-    public update(dt: number, grade: number = 0, stations: Station[] = [], gameManager: GameManagerLite | null = null) {
+    public update(dt: number, grade: number = 0, stations: Station[] = [], gameManager: GameManagerLite | null = null, maxPosition: number = 5000) {
         // Check for active failed components (severity >= 1.0)
         let hasMotorFailure = false;
         let hasBrakeFailure = false;
         let hasDoorFailure = false;
         let hasHvacFailure = false;
+        let hasCriticalFailure = false;
 
         if (gameManager && gameManager.anomalies) {
             const trainAnoms = gameManager.anomalies.filter((a) => a.trainId === this.id && a.severity >= 1.0);
@@ -95,6 +99,11 @@ export class Train {
                 if (a.component === 'Brakes') hasBrakeFailure = true;
                 if (a.component === 'Doors') hasDoorFailure = true;
                 if (a.component === 'HVAC') hasHvacFailure = true;
+
+                // Critical failure if left unhandled for 3 in-game hours
+                if (a.timeSinceFailure && a.timeSinceFailure > 3.0) {
+                    hasCriticalFailure = true;
+                }
             });
         }
 
@@ -119,16 +128,20 @@ export class Train {
         this.physics.setPassengerLoad(this.passengerCount);
 
         // 1. Update VOBC (Odometry & Safety)
-        const safetyTrip = this.vobc.update(this.physics.position, this.physics.velocity, dt, this.direction);
-        if (safetyTrip || hasBrakeFailure) {
+        let safetyTrip = false;
+        if (this.stateMachine.currentState !== TrainState.DEPOT && this.stateMachine.currentState !== TrainState.SLEEP) {
+            safetyTrip = this.vobc.update(this.physics.position, this.physics.velocity, dt, this.direction);
+        }
+        if (safetyTrip || hasBrakeFailure || hasCriticalFailure) {
             this.isEmergencyBrake = true;
             this.stateMachine.transitionTo(TrainState.EMERGENCY);
         }
 
         // Find next target station
-        this.targetStation = this.getTargetStation(stations);
+        const activeStations = stations.filter(s => s.position <= maxPosition);
+        this.targetStation = this.getTargetStation(activeStations);
 
-        // 2. Drive Control (ATO / Manual / Dwell)
+        // 2. Drive Control (ATO / Manual / Dwell / Depot)
         const doorsSafe = this.doorSystem.state === DoorState.CLOSED || this.doorSystem.state === DoorState.LOCKED;
 
         if (this.stateMachine.currentState === TrainState.EMERGENCY) {
@@ -157,19 +170,36 @@ export class Train {
             } else {
                 // Dwell finished, verify doors are closed
                 if (doorsSafe) {
-                    // If at terminal station, reverse direction!
-                    if (this.physics.position <= 50) {
-                        this.direction = 1;
-                    } else if (this.physics.position >= 4950) {
-                        this.direction = -1;
+                    if (this.isReturningToDepot) {
+                        this.stateMachine.transitionTo(TrainState.DEPOT);
+                        this.isReturningToDepot = false;
+                        this.passengerExchangeDone = false;
+                        this.direction = 1; // reset direction for when it deploys again
+                        this.physics.position = 0; // jump to start
+                    } else {
+                        // If at terminal station, reverse direction!
+                        if (this.physics.position <= 50) {
+                            this.direction = 1;
+                        } else if (this.physics.position >= maxPosition - 50) {
+                            this.direction = -1;
+                        }
+                        this.stateMachine.transitionTo(TrainState.AUTO_DRIVE);
+                        this.passengerExchangeDone = false;
                     }
-                    this.stateMachine.transitionTo(TrainState.AUTO_DRIVE);
-                    this.passengerExchangeDone = false;
+                } else {
+                    // Dwell finished but doors are not closed yet (e.g. resolved failure). Close them!
+                    if (this.doorSystem.state !== DoorState.CLOSED && this.doorSystem.state !== DoorState.LOCKED && !hasDoorFailure) {
+                        this.doorSystem.close();
+                    }
                 }
             }
         } 
+        else if (this.stateMachine.currentState === TrainState.DEPOT || this.stateMachine.currentState === TrainState.SLEEP) {
+            this.throttleCommand = 0;
+            this.brakeCommand = 1.0;
+        }
         else {
-            // Normal operations (AUTO_DRIVE or MANUAL)
+            // Normal operations (AUTO_DRIVE or MANUAL or TO_DEPOT)
             if (this.isManualOverride) {
                 // User drives the train
                 this.throttleCommand = this.manualThrottle;
@@ -185,14 +215,14 @@ export class Train {
                 // Station slowing profile
                 if (this.targetStation) {
                     const d_to_station = Math.abs(this.targetStation.position - this.physics.position);
-                    const comfortDecel = 0.7; // m/s^2
+                    const comfortDecel = 0.4; // m/s^2 (lowered to ensure train can easily stay below limit)
                     // Parabolic speed limit curve: v = sqrt(2 * a * d)
                     const stationSpeedLimit = Math.sqrt(2 * comfortDecel * Math.max(0, d_to_station));
                     speedLimit = Math.min(speedLimit, stationSpeedLimit);
 
                     // Stop condition: very close and slow
-                    if (d_to_station < 0.25 && this.physics.velocity < 0.15) {
-                        this.triggerStationDwell(this.targetStation, gameManager);
+                    if (d_to_station < 3.0 && this.physics.velocity < 8.0) {
+                        this.triggerStationDwell(this.targetStation, gameManager, maxPosition);
                     }
                 } else {
                     // No target station, we must be at the very end. Stop!
@@ -200,14 +230,14 @@ export class Train {
                         // Trigger a dwell at terminal
                         const termStation = stations.find(s => Math.abs(s.position - this.physics.position) < 50);
                         if (termStation) {
-                            this.triggerStationDwell(termStation, gameManager);
+                            this.triggerStationDwell(termStation, gameManager, maxPosition);
                         } else {
                             // Backup: flip direction immediately
                             this.direction = this.direction === 1 ? -1 : 1;
                         }
                     } else {
                         // Slow down to stop at terminus
-                        const d_to_end = this.direction === 1 ? (5000 - this.physics.position) : this.physics.position;
+                        const d_to_end = this.direction === 1 ? (maxPosition - this.physics.position) : this.physics.position;
                         const comfortDecel = 0.8;
                         const endSpeedLimit = Math.sqrt(2 * comfortDecel * Math.max(0, d_to_end));
                         speedLimit = Math.min(speedLimit, endSpeedLimit);
@@ -230,6 +260,10 @@ export class Train {
                 // Brakes on if doors are not safe
                 this.throttleCommand = 0;
                 this.brakeCommand = 1.0;
+                // If doors are open/closing/opening but we are in AUTO_DRIVE/TO_DEPOT, and no door failure, close them!
+                if (this.doorSystem.state !== DoorState.CLOSED && this.doorSystem.state !== DoorState.LOCKED && !hasDoorFailure) {
+                    this.doorSystem.close();
+                }
             }
         }
 
@@ -263,7 +297,7 @@ export class Train {
     /**
      * Set up station dwell state and handle boarding/alighting immediately
      */
-    private triggerStationDwell(station: Station, gameManager: GameManagerLite | null) {
+    private triggerStationDwell(station: Station, gameManager: GameManagerLite | null, maxPosition: number = 5000) {
         this.stateMachine.transitionTo(TrainState.DWELL);
         this.physics.velocity = 0;
         this.physics.acceleration = 0;
@@ -272,7 +306,7 @@ export class Train {
 
         // 1. Alighting Passengers
         let alighting = 0;
-        if (station.position === 0 || station.position === 5000) {
+        if (station.position <= 10 || station.position >= maxPosition - 10) {
             // Terminus: everyone gets off!
             alighting = this.passengerCount;
         } else {
@@ -280,6 +314,9 @@ export class Train {
             alighting = Math.floor(this.passengerCount * (0.2 + Math.random() * 0.2));
         }
         this.passengerCount = Math.max(0, this.passengerCount - alighting);
+        if (gameManager) {
+            gameManager.totalPassengersTransported = (gameManager.totalPassengersTransported || 0) + alighting;
+        }
 
         // 2. Boarding Passengers
         const remainingCapacity = this.maxCapacity - this.passengerCount;
@@ -290,7 +327,7 @@ export class Train {
 
         // Add ticket score and budget
         if (gameManager && boarding > 0) {
-            gameManager.addScore(boarding);
+            gameManager.addScore(boarding, station.position);
         }
 
         // 3. Calculate Dwell Duration

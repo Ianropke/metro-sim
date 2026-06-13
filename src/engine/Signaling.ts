@@ -16,16 +16,16 @@ export class ZoneController {
      * Calculates the Limit of Movement Authority (LMA) for all trains.
      * This runs at a fixed frequency (e.g. 5Hz).
      */
-    public updateHeadways() {
+    public updateHeadways(maxPosition: number = 5000) {
         // Sort trains by position per direction
         const allTrains = Array.from(this.activeTrains.values());
         
         const forwardTrains = allTrains
-            .filter(t => t.direction === 1)
+            .filter(t => t.direction === 1 && t.stateMachine.currentState !== 'DEPOT')
             .sort((a, b) => a.physics.position - b.physics.position);
             
         const backwardTrains = allTrains
-            .filter(t => t.direction === -1)
+            .filter(t => t.direction === -1 && t.stateMachine.currentState !== 'DEPOT')
             .sort((a, b) => b.physics.position - a.physics.position); // Sorted descending for backward movement
 
         // Forward Track: followers must stay behind leaders (smaller position)
@@ -44,8 +44,8 @@ export class ZoneController {
 
                 train.vobc.setLMA(lma);
             } else {
-                // No leader ahead on forward track, authority is the terminus (Nørreport at 5000m)
-                train.vobc.setLMA(5000);
+                // No leader ahead on forward track, authority is slightly past the terminus
+                train.vobc.setLMA(maxPosition + 50);
             }
         }
 
@@ -66,8 +66,8 @@ export class ZoneController {
 
                 train.vobc.setLMA(lma);
             } else {
-                // No leader ahead on backward track, authority is the terminus (Vanløse at 0m)
-                train.vobc.setLMA(0);
+                // No leader ahead on backward track, authority is slightly past the terminus
+                train.vobc.setLMA(-50);
             }
         }
     }

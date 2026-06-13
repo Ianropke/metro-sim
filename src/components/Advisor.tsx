@@ -13,12 +13,17 @@ export const Advisor: React.FC<AdvisorProps> = ({ message, type = 'TIP' }) => {
         const frame = requestAnimationFrame(() => {
             setIsVisible(true);
         });
-        const timer = setTimeout(() => setIsVisible(false), 8000); // Auto-hide after 8s
+        
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        if (type === 'TIP') {
+            timer = setTimeout(() => setIsVisible(false), 8000);
+        }
+        
         return () => {
             cancelAnimationFrame(frame);
-            clearTimeout(timer);
+            if (timer) clearTimeout(timer);
         };
-    }, [message]);
+    }, [message, type]);
 
     if (!isVisible && !message) return null;
 
@@ -27,7 +32,7 @@ export const Advisor: React.FC<AdvisorProps> = ({ message, type = 'TIP' }) => {
             border: 'border-blue-500/80',
             bubbleBg: 'bg-slate-900/95 text-slate-100 backdrop-blur-md',
             titleColor: 'text-blue-400',
-            title: 'TUTORIAL / GUIDE',
+            title: 'TUTORIAL / VEJLEDNING',
             icon: <Bot size={22} className="text-blue-400" />,
             avatarBg: 'bg-blue-950/40 border-blue-500/50',
             tailBg: 'bg-slate-900',
@@ -47,7 +52,7 @@ export const Advisor: React.FC<AdvisorProps> = ({ message, type = 'TIP' }) => {
             border: 'border-emerald-500/80',
             bubbleBg: 'bg-slate-900/95 text-slate-100 backdrop-blur-md',
             titleColor: 'text-emerald-400',
-            title: 'OPS MANAGER TIP',
+            title: 'DRIFTSLEDER-TIP',
             icon: <Lightbulb size={22} className="text-emerald-400" />,
             avatarBg: 'bg-emerald-950/40 border-emerald-500/50',
             tailBg: 'bg-slate-900',

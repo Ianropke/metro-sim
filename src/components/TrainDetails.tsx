@@ -17,9 +17,42 @@ interface TrainDetailsProps {
     onClose: () => void;
     onSetManualOverride?: (trainId: string, isManual: boolean) => void;
     onSetManualCommands?: (trainId: string, throttle: number, brake: number) => void;
+    anomalies?: { 
+        id: string; 
+        trainId: string; 
+        component: string; 
+        severity: number; 
+        detected: boolean; 
+        failed?: boolean;
+        stewardDeployed?: boolean;
+        stewardTravelTime?: number;
+        stewardRepairTime?: number;
+    }[];
+    onRepairAnomaly?: (id: string) => void;
+    onDeploy?: () => void;
+    onReturnToDepot?: () => void;
+    onResetEmergency?: () => void;
+    maintenanceStrategy?: 'REACTIVE' | 'PREVENTIVE' | 'CONDITIONAL' | 'PREDICTIVE';
+    isSpawnBlocked?: boolean;
+    stewardsCount?: number;
+    stewardsBusy?: number;
 }
 
-export const TrainDetails: React.FC<TrainDetailsProps> = ({ train, onClose, onSetManualOverride, onSetManualCommands }) => {
+export const TrainDetails: React.FC<TrainDetailsProps> = ({ 
+    train, 
+    onClose, 
+    onSetManualOverride, 
+    onSetManualCommands,
+    anomalies,
+    onRepairAnomaly,
+    onDeploy,
+    onReturnToDepot,
+    onResetEmergency,
+    maintenanceStrategy,
+    isSpawnBlocked,
+    stewardsCount = 1,
+    stewardsBusy = 0
+}) => {
     const [throttle, setThrottle] = useState(0.0);
     const [brake, setBrake] = useState(0.0);
     if (!train) return null;
@@ -141,6 +174,119 @@ export const TrainDetails: React.FC<TrainDetailsProps> = ({ train, onClose, onSe
                             style={{ width: `${(train.dwellTimer / train.totalDwellTime) * 100}%` }}
                         ></div>
                     </div>
+                </div>
+            )}
+
+            {/* Emergency Management */}
+            {train.state === 'EMERGENCY' && (
+                <button 
+                    onClick={onResetEmergency}
+                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-xs py-2 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-colors border border-rose-500/50"
+                >
+                    RESET EMERGENCY BRAKE
+                </button>
+            )}
+
+            {/* Depot Management */}
+            {train.state === 'DEPOT' && (
+                <button 
+                    onClick={isSpawnBlocked ? undefined : onDeploy}
+                    disabled={isSpawnBlocked}
+                    className={`w-full font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-colors border ${
+                        isSpawnBlocked
+                        ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400/50 active:scale-95'
+                    }`}
+                    title={isSpawnBlocked ? "Vanløse station er blokeret af et andet tog. Vent til det er kørt." : undefined}
+                >
+                    <Compass size={14} /> {isSpawnBlocked ? 'SPOR BLOKERET' : 'DEPLOY TO MAINLINE'}
+                </button>
+            )}
+
+            
+            {(train.state !== 'DEPOT' && train.state !== 'TO_DEPOT' && !train.isManualOverride) && (
+                <button 
+                    onClick={onReturnToDepot}
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-2 shadow-inner transition-colors border border-slate-700"
+                >
+                    RETURN TO DEPOT
+                </button>
+            )}
+
+            {train.state === 'TO_DEPOT' && (
+                <div className="w-full bg-slate-800/50 text-slate-400 font-bold text-xs py-2 rounded-xl flex items-center justify-center gap-2 border border-slate-800 animate-pulse">
+                    RETURNING AT NEXT TERMINUS...
+                </div>
+            )}
+
+            {/* Anomalies & Repair */}
+            {anomalies && anomalies.length > 0 && (
+                <div className="border-t border-rose-900/30 pt-3 flex flex-col gap-2">
+                    {anomalies.map(a => {
+                        const cost = a.failed ? 800 : (maintenanceStrategy === 'PREDICTIVE' ? 100 : (maintenanceStrategy === 'CONDITIONAL' ? 250 : 300));
+                        const availableStewards = (stewardsCount ?? 1) - (stewardsBusy ?? 0);
+                        return (
+                            <div key={a.id} className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3 flex flex-col gap-2">
+                                <div className="flex items-start gap-2">
+                                    <AlertCircle size={14} className="text-rose-500 mt-0.5" />
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-bold text-rose-400 uppercase">{a.component} {a.failed ? 'FAILURE' : 'ANOMALY'}</span>
+                                        <span className="text-[10px] text-rose-300/70 leading-tight">
+                                            {a.failed ? 'Causes severe disruption. Needs immediate repair.' : 'Degrading performance detected. Early fix recommended.'}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {a.failed && a.stewardDeployed ? (
+                                    <div className="bg-slate-950/50 p-2 rounded border border-slate-900 text-[10px] flex flex-col gap-1 text-slate-400 font-mono">
+                                        {a.stewardTravelTime !== undefined && a.stewardTravelTime > 0 ? (
+                                            <>
+                                                <div className="text-blue-400 font-bold">STEWARD UDSENDT</div>
+                                                <div className="flex justify-between">
+                                                    <span>Status:</span>
+                                                    <span className="text-amber-400 font-bold">Rejser dertil...</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>Ankomst om:</span>
+                                                    <span className="text-white font-bold font-mono">~{a.stewardTravelTime.toFixed(1)}s</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="text-emerald-400 font-bold">REPARATION I GANG</div>
+                                                <div className="flex justify-between">
+                                                    <span>Status:</span>
+                                                    <span className="text-emerald-400 font-bold">Udbedrer fejl...</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>Færdig om:</span>
+                                                    <span className="text-white font-bold font-mono">~{a.stewardRepairTime?.toFixed(1) ?? '0'}s</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <button 
+                                        onClick={() => {
+                                            if (a.failed && availableStewards <= 0) return;
+                                            if (onRepairAnomaly) onRepairAnomaly(a.id);
+                                        }}
+                                        disabled={a.failed && availableStewards <= 0}
+                                        className={`w-full font-black text-xs py-2 rounded-lg transition-all shadow-lg active:scale-95 text-center ${
+                                            a.failed
+                                            ? 'bg-rose-600 hover:bg-rose-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white border border-rose-500/25'
+                                            : 'bg-blue-600 hover:bg-blue-500 text-white border border-blue-400/25'
+                                        }`}
+                                    >
+                                        {a.failed
+                                            ? (availableStewards <= 0 ? 'INGEN LEDIGE STEWARDS' : 'SEND STEWARD ($800)')
+                                            : `REPARER ($${cost})`
+                                        }
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 

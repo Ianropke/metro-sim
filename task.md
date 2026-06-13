@@ -1,0 +1,11 @@
+- [x] Add `tutorialStep` (0-3) to GameManager.
+- [x] Implement scripted anomaly trigger on TRN01 in GameManager for Step 1.
+- [x] Export Fleet stats (Total, Active, Depot, Broken) in SimulationLoop `getState()`.
+- [x] Add Fleet Overview UI panel to ControlRoom.
+- [x] Add Tutorial Prompts (Advisor box) to ControlRoom based on `tutorialStep`.
+- [x] Lock/hide SHOP, DATA, and EMERGENCY buttons based on `tutorialStep`.
+- [x] Fix TypeScript compiler errors (`TextStyle` and `onSetStrategy` type mismatch).
+- [x] Implement persistent tutorial alerts (no auto-fade for TUTORIAL/WARNING).
+- [x] Add Left Mission / Objective Panel to UI showing phase-by-phase goals.
+- [x] Enhance spawn safety logic to check all trains within 300m and prevent backend spawns when blocked.
+- [x] Align train shop cost ($8.000) with UI instructions.

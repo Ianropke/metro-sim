@@ -32,10 +32,11 @@ const ToastItem: React.FC<{ toast: Toast; onRemove: (id: string) => void }> = ({
         requestAnimationFrame(() => setIsVisible(true));
 
         // Auto dismiss
+        const duration = toast.duration || ((toast.type === 'ERROR' || toast.type === 'WARNING') ? 10000 : 6000);
         const timer = setTimeout(() => {
             setIsVisible(false);
             setTimeout(() => onRemove(toast.id), 300); // Wait for slide out animation
-        }, toast.duration || 5000);
+        }, duration);
 
         return () => clearTimeout(timer);
     }, [toast, onRemove]);
