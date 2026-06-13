@@ -163,7 +163,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
     }
 
     return (
-        <div className="relative w-full h-full bg-slate-950 overflow-hidden flex flex-col font-sans">
+        <div className="relative w-screen h-screen bg-slate-950 overflow-hidden font-sans">
 
             {/* 1. Fullscreen Map Layer (Background) */}
             <div className="absolute inset-0 z-0">
@@ -175,7 +175,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             </div>
 
             {/* 2. HUD - Top Bar (Tycoon Style) */}
-            <div className="relative z-10 w-full p-4 pointer-events-none flex justify-between items-start">
+            <div className="absolute top-0 left-0 w-full p-4 z-10 pointer-events-none flex justify-between items-start">
 
                 {/* Left: Game Info */}
                 <div className="bg-slate-900/90 backdrop-blur-md p-3 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-1 pointer-events-auto">
@@ -244,23 +244,20 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             {/* 4. Advisor Layer */}
             <Advisor message={advisorMessage} type={advisorType} />
 
-            {/* 5. Main Content Area (Empty for now, map is behind) */}
-            <div className="flex-1 relative z-0 pointer-events-none">
-                {/* Train Details Overlay (Floating) */}
-                {selectedTrain && (
-                    <div className="absolute top-4 left-4 pointer-events-auto">
-                        <TrainDetails
-                            train={selectedTrain}
-                            onClose={() => setSelectedTrainId(null)}
-                            onSetManualOverride={onSetManualOverride}
-                            onSetManualCommands={onSetManualCommands}
-                        />
-                    </div>
-                )}
-            </div>
+            {/* 5. Main Content Area / Floating Panels */}
+            {selectedTrain && (
+                <div className="absolute top-24 left-4 z-30 pointer-events-auto">
+                    <TrainDetails
+                        train={selectedTrain}
+                        onClose={() => setSelectedTrainId(null)}
+                        onSetManualOverride={onSetManualOverride}
+                        onSetManualCommands={onSetManualCommands}
+                    />
+                </div>
+            )}
 
-            {/* 5. Bottom Dock (Controls) */}
-            <div className="relative z-20 w-full p-6 flex justify-center items-end pointer-events-none">
+            {/* 6. Bottom Dock (Controls) */}
+            <div className="absolute bottom-0 left-0 w-full p-6 z-20 flex justify-center items-end pointer-events-none">
                 <div className="pointer-events-auto flex items-center gap-4 bg-slate-950/80 backdrop-blur-xl px-6 py-4 rounded-3xl border border-white/10 shadow-2xl transform transition-all hover:scale-105">
 
                     <DockButton

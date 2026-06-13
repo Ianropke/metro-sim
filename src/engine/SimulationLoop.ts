@@ -41,6 +41,9 @@ export class SimulationLoop {
         t2.stateMachine.transitionTo('AUTO_DRIVE');
         this.trains.push(t2);
         this.zoneController.registerTrain(t2);
+
+        // Run headway signaling immediately to establish initial LMAs before simulation ticks
+        this.zoneController.updateHeadways();
     }
 
     public start() {
@@ -49,6 +52,8 @@ export class SimulationLoop {
     }
 
     public update(dt: number) {
+        // Update signaling LMA values BEFORE updating physics to prevent out-of-bounds safety trips
+        this.zoneController.updateHeadways();
         this.updatePhysics(dt);
         this.updateLogic(dt);
     }
