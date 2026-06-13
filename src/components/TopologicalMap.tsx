@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stage, Container, Graphics, Sprite, TilingSprite, Text } from '@pixi/react';
+import { Stage, Container, Graphics, Text } from '@pixi/react';
 import { TextStyle } from 'pixi.js';
 
 interface TopologicalMapProps {
@@ -60,17 +60,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
     });
 
     return (
-        <Stage width={window.innerWidth} height={window.innerHeight} options={{ backgroundAlpha: 1, backgroundColor: 0x070b13 }}>
-
-            {/* Background Texture */}
-            <TilingSprite
-                image="/assets/background.png"
-                width={window.innerWidth}
-                height={window.innerHeight}
-                tileScale={{ x: 0.5, y: 0.5 }}
-                tilePosition={{ x: 0, y: 0 }}
-                alpha={0.15}
-            />
+        <Stage width={window.innerWidth} height={window.innerHeight} options={{ backgroundAlpha: 1, backgroundColor: 0x090d16 }}>
 
             <Container x={0} y={0}>
                 {/* 1. Double Tracks Drawing */}
@@ -123,27 +113,26 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
                     const x = 50 + (st.position / 5000) * (window.innerWidth - 100);
                     return (
                         <Container key={st.name} x={x} y={300}>
-                            {/* Station platform outline */}
+                            {/* Clean schematic station dot */}
                             <Graphics draw={(g) => {
                                 g.clear();
-                                g.beginFill(0x1e293b, 0.8);
-                                g.lineStyle(1.5, 0x475569, 1);
-                                g.drawRoundedRect(-24, -40, 48, 80, 6);
+                                // Outer glow/halo for station area
+                                g.lineStyle(1.5, 0x475569, 0.8);
+                                g.beginFill(0x0f172a, 0.95);
+                                g.drawCircle(0, 0, 14);
+                                g.endFill();
+                                
+                                // Inner dot
+                                g.beginFill(0xffffff, 1);
+                                g.drawCircle(0, 0, 5);
                                 g.endFill();
                             }} />
-
-                            <Sprite
-                                image="/assets/station.png"
-                                anchor={0.5}
-                                scale={0.12}
-                                y={0}
-                            />
 
                             {/* Station Name Label */}
                             <Text
                                 text={st.name.toUpperCase()}
                                 anchor={{ x: 0.5, y: 0 }}
-                                y={45}
+                                y={20}
                                 style={stationLabelStyle}
                             />
 
@@ -151,7 +140,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
                             <Text
                                 text={`${st.pax} PAX`}
                                 anchor={{ x: 0.5, y: 1 }}
-                                y={-45}
+                                y={-20}
                                 style={stationPaxStyle(st.pax)}
                             />
                         </Container>
@@ -217,12 +206,46 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({ trains, stations
                                 }} />
                             )}
 
-                            {/* Train Sprite (Flipped depending on direction) */}
-                            <Sprite
-                                image="/assets/train.png"
-                                anchor={0.5}
-                                scale={{ x: train.direction === 1 ? 0.22 : -0.22, y: 0.22 }}
-                            />
+                            {/* Sleek vector train shape */}
+                            <Graphics draw={(g) => {
+                                g.clear();
+                                
+                                // Determine state color
+                                let color = 0x3b82f6; // Auto running (blue)
+                                if (train.state === 'EMERGENCY') {
+                                    color = 0xef4444; // Emergency (red)
+                                } else if (train.state === 'DWELL') {
+                                    color = 0xf59e0b; // Dwell (orange)
+                                } else if (train.isManualOverride) {
+                                    color = 0xa855f7; // Manual override (purple)
+                                }
+
+                                // Train body (rounded rectangle)
+                                g.beginFill(color, 1);
+                                g.lineStyle(1.5, 0xffffff, 0.9);
+                                g.drawRoundedRect(-24, -8, 48, 16, 4);
+                                g.endFill();
+
+                                // Front window (pointing direction)
+                                g.beginFill(0x0f172a, 1);
+                                if (train.direction === 1) {
+                                    // Pointing right
+                                    g.drawRect(14, -6, 6, 12);
+                                } else {
+                                    // Pointing left
+                                    g.drawRect(-20, -6, 6, 12);
+                                }
+                                g.endFill();
+                                
+                                // Passenger load bar inside train body
+                                const fillRatio = Math.min(1.0, train.passengerCount / train.maxCapacity);
+                                if (fillRatio > 0) {
+                                    g.lineStyle(0);
+                                    g.beginFill(0xffffff, 0.4);
+                                    g.drawRect(-18, 3, 36 * fillRatio, 3);
+                                    g.endFill();
+                                }
+                            }} />
 
                             {/* Train ID & Load Label */}
                             <Text

@@ -110,12 +110,14 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             const latestEvent = game.events[game.events.length - 1];
             if (lastEventIdRef.current !== latestEvent.id) {
                 lastEventIdRef.current = latestEvent.id;
-                addToast({
-                    id: latestEvent.id,
-                    type: latestEvent.type === 'FAILURE' ? 'ERROR' : 'INFO',
-                    title: latestEvent.name || 'Event',
-                    message: latestEvent.description
-                });
+                setTimeout(() => {
+                    addToast({
+                        id: latestEvent.id,
+                        type: latestEvent.type === 'FAILURE' ? 'ERROR' : 'INFO',
+                        title: latestEvent.name || 'Event',
+                        message: latestEvent.description
+                    });
+                }, 0);
             }
         }
     }, [game.events, addToast]);
