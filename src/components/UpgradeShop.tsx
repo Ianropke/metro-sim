@@ -16,6 +16,10 @@ interface UpgradeShopProps {
     stewardSpecialTraining?: boolean;
     autoStewardCall?: boolean;
     totalPassengersTransported?: number;
+    inspectorsCount?: number;
+    engineersCount?: number;
+    ticketInspectionTimer?: number;
+    onStartTicketInspection?: () => void;
 }
 
 export const UpgradeShop: React.FC<UpgradeShopProps> = ({ 
@@ -32,7 +36,11 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
     hasTRES = false,
     stewardSpecialTraining = false,
     autoStewardCall = false,
-    totalPassengersTransported = 0
+    totalPassengersTransported = 0,
+    inspectorsCount = 0,
+    engineersCount = 0,
+    ticketInspectionTimer = 0,
+    onStartTicketInspection
 }) => {
     const upgrades = [
         { id: 'ROUTE_EXTENSION_1', name: 'Ruteudvidelse: Forum -> Nørreport', description: 'Lås op for de sidste 2 stationer på linjen. Øger passagerpotentialet markant.', cost: 15000, icon: Map },
@@ -44,6 +52,8 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
         { id: 'BUY_TRAIN', name: 'Køb Nyt Tog', description: 'Indsæt et ekstra førerløst tog for at øge frekvensen.', cost: 8000, icon: Train },
         { id: 'HIRE_STEWARD', name: 'Hyr Metro Steward', description: 'Hyr personale til at afhjælpe nødstop og berolige passagerer.', cost: 1000, icon: Users },
         { id: 'TRAIN_STEWARDS', name: 'Stewards: Certificering', description: 'Uddan stewards til at rejse og reparere 33% hurtigere.', cost: 2500, icon: Award },
+        { id: 'HIRE_INSPECTOR', name: 'Hyr Billetkontrollør', description: 'Foretager løbende billetkontrol i baggrunden for at fange snyltere.', cost: 800, icon: Users },
+        { id: 'HIRE_ENGINEER', name: 'Hyr Baneingeniør', description: 'Arbejder kontinuerligt på skinnerne for at modvirke og reparere slitage.', cost: 1200, icon: ShieldCheck },
         { id: 'AUTOMATED_PIDS', name: 'Automatiseret PIDS', description: 'Dynamiske perron-displays. Fjerner 50% af vrede under forsinkelser.', cost: 2000, icon: MessageSquare },
         { id: 'SENSOR_UPGRADE', name: 'Avancerede IoT-sensorer', description: 'Maks Lvl 3. Forbedrer Konditionel strategi ved at opdage fejl tidligere.', cost: 2000, icon: Cpu },
         { id: 'HIRE_ANALYST', name: 'Ansæt Dataanalytiker', description: 'Maks 3. Dataanalytikere fremskynder din F&U hastighed med 30%.', cost: 1500, icon: Activity },
@@ -65,15 +75,45 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
                 </div>
 
                 <div className="mb-4 p-4 bg-slate-800/60 rounded-2xl flex justify-between items-center border border-slate-700/40">
-                    <span className="text-slate-400 text-sm font-bold uppercase tracking-wider">Driftsbudget</span>
-                    <span className={`font-mono font-black text-2xl ${budget > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        ${budget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
+                    <div className="flex flex-col">
+                        <span className="text-slate-400 text-sm font-bold uppercase tracking-wider">Driftsbudget</span>
+                        <span className={`font-mono font-black text-2xl ${budget > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            ${budget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                    </div>
+                    {onStartTicketInspection && (
+                        <div className="flex flex-col items-end">
+                            <button
+                                onClick={() => {
+                                    if (budget >= 100 && ticketInspectionTimer <= 0) {
+                                        onStartTicketInspection();
+                                    }
+                                }}
+                                disabled={budget < 100 || ticketInspectionTimer > 0}
+                                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-1 ${
+                                    (budget < 100 || ticketInspectionTimer > 0)
+                                    ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
+                                }`}
+                                title="Igangsætter en 30-minutters intensiv kontrolkampagne for at fange snyltere."
+                            >
+                                🎫 {ticketInspectionTimer > 0 ? 'Billetkontrol Aktiv' : 'Start Billetkontrol ($100)'}
+                            </button>
+                            {ticketInspectionTimer > 0 && (
+                                <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-white/5 mt-1">
+                                    <div 
+                                        className="h-full rounded-full bg-emerald-500 transition-all"
+                                        style={{ width: `${(ticketInspectionTimer / 1800) * 100}%` }}
+                                    ></div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                     {upgrades.map(upgrade => {
-                        const isMultiPurchase = ['BUY_TRAIN', 'HIRE_STEWARD', 'TRAIN_STEWARDS', 'SENSOR_UPGRADE', 'HIRE_ANALYST'].includes(upgrade.id);
+                        const isMultiPurchase = ['BUY_TRAIN', 'HIRE_STEWARD', 'TRAIN_STEWARDS', 'SENSOR_UPGRADE', 'HIRE_ANALYST', 'HIRE_INSPECTOR', 'HIRE_ENGINEER'].includes(upgrade.id);
                         const isOwned = !isMultiPurchase && activeUpgrades.has(upgrade.id);
                         const isLockedInTutorial = tutorialStep !== undefined && tutorialStep < 3 && upgrade.id !== 'BUY_TRAIN';
                         
@@ -84,13 +124,15 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
 
                         // Progressive lock logic
                         let lockReason = "";
-                        if (totalPassengersTransported < 50) {
-                            if (!['BUY_TRAIN', 'HIRE_STEWARD', 'AUTO_STEWARD_CALL'].includes(upgrade.id)) {
-                                lockReason = "Kræver 50 passagerer";
-                            }
-                        } else if (totalPassengersTransported < 150) {
-                            if (['SENSOR_UPGRADE', 'HIRE_ANALYST', 'BUY_ARIIS', 'BUY_TRES', 'STEWARD_SPECIAL_TRAINING', 'ROUTE_EXTENSION_1'].includes(upgrade.id)) {
-                                lockReason = "Kræver 150 passagerer";
+                        if (tutorialStep !== undefined && tutorialStep >= 6) {
+                            if (totalPassengersTransported < 50) {
+                                if (!['BUY_TRAIN', 'HIRE_STEWARD', 'AUTO_STEWARD_CALL', 'HIRE_INSPECTOR'].includes(upgrade.id)) {
+                                    lockReason = "Kræver 50 passagerer";
+                                }
+                            } else if (totalPassengersTransported < 150) {
+                                if (['SENSOR_UPGRADE', 'HIRE_ANALYST', 'BUY_ARIIS', 'BUY_TRES', 'STEWARD_SPECIAL_TRAINING', 'ROUTE_EXTENSION_1', 'HIRE_ENGINEER'].includes(upgrade.id)) {
+                                    lockReason = "Kræver 150 passagerer";
+                                }
                             }
                         }
                         const isLockedProgressively = lockReason !== "";
@@ -106,6 +148,10 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
                             displayDescription = `${upgrade.description} (Niveau: ${sensorLevel}/3)`;
                         } else if (upgrade.id === 'HIRE_ANALYST') {
                             displayDescription = `${upgrade.description} (Ansatte: ${dataAnalystsCount}/3)`;
+                        } else if (upgrade.id === 'HIRE_INSPECTOR') {
+                            displayDescription = `${upgrade.description} (Ansatte: ${inspectorsCount})`;
+                        } else if (upgrade.id === 'HIRE_ENGINEER') {
+                            displayDescription = `${upgrade.description} (Ansatte: ${engineersCount})`;
                         } else if (upgrade.id === 'BUY_ARIIS') {
                             displayDescription = `${upgrade.description} (Købt: ${hasARIIS ? 'Ja' : 'Nej'})`;
                         } else if (upgrade.id === 'BUY_TRES') {
@@ -135,7 +181,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                                        <p className="text-sm text-slate-400 mt-0.5 leading-relaxed">
                                             {displayDescription}
                                             {isLockedProgressively && (
                                                 <span className="text-rose-400 block font-bold mt-1">⚠️ {lockReason}</span>
@@ -149,9 +195,9 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
                                         onPurchase(upgrade.id, upgrade.cost);
                                     }}
                                     disabled={isButtonDisabled}
-                                    className={`px-4 py-2 text-xs rounded-xl font-bold transition-all ${
+                                    className={`px-4 py-2 text-sm rounded-xl font-bold transition-all ${
                                         isOwned || isMaxed
-                                        ? 'bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed'
+                                        ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
                                         : (isLockedInTutorial || isLockedProgressively)
                                             ? 'bg-slate-900 border border-slate-850 text-slate-600 cursor-not-allowed'
                                             : 'bg-blue-600 hover:bg-blue-500 text-white shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none'

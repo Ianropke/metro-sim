@@ -206,6 +206,7 @@ export class SimulationLoop {
             alarms: this.scada.getActiveAlarms(),
             game: {
                 timeOfDay: this.gameManager.timeOfDay,
+                timeScale: this.gameManager.timeScale,
                 satisfaction: this.gameManager.passengerSatisfaction,
                 efficiency: this.gameManager.energyEfficiency,
                 budget: this.gameManager.budget,
@@ -234,7 +235,16 @@ export class SimulationLoop {
                 activeResearch: this.gameManager.activeResearch,
                 researchProgress: this.gameManager.researchProgress,
                 researchDuration: this.gameManager.researchDuration,
-                researchTimeRemaining: this.gameManager.researchTimeRemaining
+                researchTimeRemaining: this.gameManager.researchTimeRemaining,
+                trackWear: this.gameManager.trackWear,
+                trainWear: this.gameManager.trainWear,
+                inspectorsCount: this.gameManager.inspectorsCount,
+                engineersCount: this.gameManager.engineersCount,
+                ticketInspectionTimer: this.gameManager.ticketInspectionTimer,
+                dataAuditTimer: this.gameManager.dataAuditTimer,
+                isDataAuditActive: this.gameManager.isDataAuditActive,
+                milestones: this.gameManager.milestones,
+                activeMilestonePopup: this.gameManager.activeMilestonePopup
             },
             fleet: {
                 total: this.trains.length,

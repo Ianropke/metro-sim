@@ -64,10 +64,10 @@ export const Advisor: React.FC<AdvisorProps> = ({ message, type = 'TIP' }) => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <h4 className={`font-bold text-[10px] uppercase tracking-wider mb-0.5 ${currentStyle.titleColor}`}>
+                    <h4 className={`font-bold text-[12px] uppercase tracking-wider mb-0.5 ${currentStyle.titleColor}`}>
                         {currentStyle.title}
                     </h4>
-                    <p className="text-[11px] font-semibold leading-relaxed text-slate-200">
+                    <p className="text-[12px] font-semibold leading-relaxed text-slate-200">
                         {message}
                     </p>
                 </div>

@@ -3,6 +3,7 @@ import { ControlRoom } from './components/ControlRoom';
 import { SimulationLoop } from './engine/SimulationLoop';
 import { WelcomeModal } from './components/WelcomeModal';
 import { EndGameModal } from './components/EndGameModal';
+import { MilestonePopup } from './components/MilestonePopup';
 
 function App() {
   const [sim, setSim] = useState(() => new SimulationLoop());
@@ -26,7 +27,14 @@ function App() {
       
       // Stop ticking if game is over
       if (sim.gameManager.gameStatus === 'PLAYING') {
-        sim.tick(dt, 10);
+        const timeScale = sim.gameManager.timeScale ?? 2;
+        let speedMultiplier = 10;
+        if (timeScale === 0) speedMultiplier = 0;
+        else if (timeScale === 1) speedMultiplier = 5;
+        else if (timeScale === 2) speedMultiplier = 10;
+        else if (timeScale === 3) speedMultiplier = 20;
+
+        sim.tick(dt, speedMultiplier);
       }
       setSimState(sim.getState());
 
@@ -52,6 +60,16 @@ function App() {
         />
       )}
 
+      {simState.game.activeMilestonePopup && (
+        <MilestonePopup
+          name={simState.game.activeMilestonePopup.name}
+          reward={simState.game.activeMilestonePopup.reward}
+          description={simState.game.activeMilestonePopup.description}
+          onDismiss={() => sim.gameManager.dismissMilestonePopup()}
+        />
+      )}
+
+
       <ControlRoom
         trains={simState.trains}
         stations={simState.stations}
@@ -60,6 +78,9 @@ function App() {
         anomalies={simState.game.anomalies}
         game={simState.game}
         fleet={simState.fleet}
+        onSetTimeScale={(scale) => {
+          sim.gameManager.timeScale = scale;
+        }}
         onEmergencyTrigger={() => sim.triggerEmergency()}
         onBroadcastAnnouncement={() => {
           sim.gameManager.broadcastAnnouncement();
@@ -126,6 +147,18 @@ function App() {
             train.isEmergencyBrake = false;
             train.stateMachine.transitionTo('AUTO_DRIVE');
           }
+        }}
+        onPerformTrainMaintenance={(trainId) => {
+          sim.gameManager.performTrainMaintenance(trainId);
+        }}
+        onPerformTrackMaintenance={() => {
+          sim.gameManager.performTrackMaintenance();
+        }}
+        onStartTicketInspection={() => {
+          sim.gameManager.startTicketInspection();
+        }}
+        onStartDataAudit={() => {
+          sim.gameManager.startDataAudit();
         }}
       />
     </div>

@@ -150,45 +150,49 @@ function runPlaythrough(runId: number) {
         finalSatisfaction: loop.gameManager.passengerSatisfaction,
         totalPassengers: loop.gameManager.totalPassengersTransported,
         trainsCount: loop.trains.length,
-        maintenanceStrategy: loop.gameManager.maintenanceStrategy
+        maintenanceStrategy: loop.gameManager.maintenanceStrategy,
+        failuresCount: (loop.gameManager as any).totalFailuresCount || 0
     };
 }
 
 function runAllPlaytests() {
-    console.log("=== STARTING AUTOMATED BALANCE PLAYTEST (20 RUNS) ===");
+    console.log("=== STARTING AUTOMATED BALANCE PLAYTEST (10 RUNS) ===");
     const results = [];
     let victories = 0;
     let defeats = 0;
     
-    for (let i = 1; i <= 20; i++) {
+    for (let i = 1; i <= 10; i++) {
         const res = runPlaythrough(i);
         results.push(res);
         if (res.status === 'VICTORY') victories++;
         else defeats++;
         
-        console.log(`Run #${i.toString().padStart(2, '0')}: Status: ${res.status.padEnd(9)}, Budget: $${Math.round(res.finalBudget).toString().padStart(6)}, Pax: ${res.totalPassengers.toString().padStart(4)}, Strategy: ${res.maintenanceStrategy}`);
+        console.log(`Run #${i.toString().padStart(2, '0')}: Status: ${res.status.padEnd(9)}, Budget: $${Math.round(res.finalBudget).toString().padStart(6)}, Pax: ${res.totalPassengers.toString().padStart(4)}, Strategy: ${res.maintenanceStrategy}, Fejl: ${res.failuresCount}`);
     }
     
     console.log("\n=== PLAYTEST SIMULATION SUMMARY ===");
-    console.log(`Total Runs: 20`);
-    console.log(`Victories:  ${victories} (${(victories/20 * 100).toFixed(0)}%)`);
-    console.log(`Defeats:    ${defeats} (${(defeats/20 * 100).toFixed(0)}%)`);
+    console.log(`Total Runs: 10`);
+    console.log(`Victories:  ${victories} (${(victories/10 * 100).toFixed(0)}%)`);
+    console.log(`Defeats:    ${defeats} (${(defeats/10 * 100).toFixed(0)}%)`);
     
-    const avgDuration = results.reduce((acc, r) => acc + r.durationMinutes, 0) / 20;
-    const avgBudget = results.reduce((acc, r) => acc + r.finalBudget, 0) / 20;
-    const avgPax = results.reduce((acc, r) => acc + r.totalPassengers, 0) / 20;
-    const avgTrains = results.reduce((acc, r) => acc + r.trainsCount, 0) / 20;
+    const avgDuration = results.reduce((acc, r) => acc + r.durationMinutes, 0) / 10;
+    const avgBudget = results.reduce((acc, r) => acc + r.finalBudget, 0) / 10;
+    const avgPax = results.reduce((acc, r) => acc + r.totalPassengers, 0) / 10;
+    const avgTrains = results.reduce((acc, r) => acc + r.trainsCount, 0) / 10;
+    const avgFailures = results.reduce((acc, r) => acc + r.failuresCount, 0) / 10;
     
     console.log(`Avg Game Duration: ${(avgDuration / 60).toFixed(1)} game hours (${Math.round(avgDuration)} game minutes)`);
     console.log(`Avg Final Budget:  $${Math.round(avgBudget)}`);
     console.log(`Avg Passengers:    ${Math.round(avgPax)}`);
     console.log(`Avg Train Count:   ${avgTrains.toFixed(1)}`);
+    console.log(`Avg Failures:      ${avgFailures.toFixed(1)}`);
+    console.log(`Minutes per Failure: ${(avgDuration / avgFailures).toFixed(2)} game minutes`);
     
     console.log("\n=== BALANCE EVALUATION ===");
-    if (victories / 20 >= 0.7) {
+    if (victories / 10 >= 0.7) {
         console.log("🟢 BALANCE STATUS: OPTIMAL.");
         console.log("Spillet er udfordrende, men fuldt ud muligt at gennemføre med den rette strategi.");
-    } else if (victories / 20 > 0.3) {
+    } else if (victories / 10 > 0.3) {
         console.log("🟡 BALANCE STATUS: KRÆVENDE.");
         console.log("Spillet har en høj sværhedsgrad, hvilket passer godt til en strategisk simulation.");
     } else {

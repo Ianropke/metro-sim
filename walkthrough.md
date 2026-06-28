@@ -171,3 +171,28 @@ For at sikre, at popups og modaler ikke blandes sammen, har vi defineret et stra
 *   `z-500`: Advarsler og Toasts (notifikationer).
 *   `z-900`: Beskedhistorik-skuffen (`showLog`).
 *   `z-1000`: Fuldskærmsmodaler som `UpgradeShop`, `DataDashboard` og `EndGameModal` (konkurs/sejr-skærme).
+
+---
+
+## 11. Tycoon-drift & Vedligeholdelse (Slitage, Billetkontrol & Dataaudits)
+
+Spillet er nu flyttet markant over imod strategisk planlægning og klassisk tycoon-drift. Den tilfældige fejlrate er sænket med 10x (til næsten nul), hvilket betyder, at spilleren ikke længere bombarderes med irriterende tilfældige nedbrudspopups. I stedet er spillet drevet af slid på tog og infrastruktur, som skal forvaltes proaktivt:
+
+### Togslitage & Eftersyn (Train Maintenance)
+*   **Gradvis slitage:** Tog slides løbende under kørsel på hovedlinjen. Deres aktuelle slitageprocent vises nu på togdetaljekortet.
+*   **Standard Eftersyn ($150):** Spilleren kan klikke `Udfør Eftersyn` på ethvert tog i drift for at nulstille slitagen til 0%.
+*   **Slitage-nedbrud:** Hvis togslitage når 100%, bryder toget sammen med en tilfældig fejl (motor, døre, bremser, osv.), der kræver en steward for at udbedre, og udløser driftsbøder.
+
+### Skinnelitage & Baneingeniører (Track Infrastructure)
+*   **Infrastruktur-slitage:** Skinner og signaler slides ned baseret på antallet af aktive tog på strækningen. En ny visualisering `Spor-tilstand` i venstre panel viser skinnetilstanden live.
+*   **Slib Skinner ($400):** Spilleren kan manuelt udføre sporarbejde for at nulstille skinnelitagen. Hvis skinnelitagen når 100%, opstår et kritisk spor- og signalinfrastrukturnedbrud.
+*   **Baneingeniører ($1.200):** Spilleren kan hyre Baneingeniører i butikken, som automatisk udfører vedligeholdsarbejde i baggrunden for en løbende løn ($90/t).
+
+### Billetkontrol & Billetkontrollører (Fare Auditing)
+*   **Manuel Billetkontrol ($100):** Spilleren kan i venstre panel iværksætte en aktiv billetkontrolkampagne. Under kontrolkampagnen (30 min) er der chance for at fange passagerer uden billet, hvilket udløser en kontant bødestraf på $150.
+*   **Billetkontrollører ($800):** Spilleren kan ansætte Billetkontrollører i butikken til en løbende løn ($60/t), som kontinuerligt og automatisk fanger snyltere i baggrunden (bødeindtægt: $120).
+
+### Dataanalyse & Audits (Analytics)
+*   **Data-Audits:** I *Forskningscenter* (FORSKNING) kan spilleren nu køre aktive dataanalyse-audits.
+*   **Forskningsbevilling ($500):** En data-audit tager tid og afsluttes hurtigere, jo flere Dataanalytikere spilleren har ansat. Ved fuldførelse udbetales en forskningsbevilling på $500 til budgettet.
+

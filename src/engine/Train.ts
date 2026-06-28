@@ -23,6 +23,8 @@ interface GameManagerLite {
     addScore(paxCount: number, positionX?: number): void;
     passengerSatisfaction: number;
     totalPassengersTransported?: number;
+    isAnnouncementActive?: boolean;
+    automatedPIDS?: boolean;
 }
 
 export class Train {
@@ -113,8 +115,14 @@ export class Train {
 
         // Apply HVAC failure penalty
         if (hasHvacFailure && gameManager) {
-            // Drain passenger satisfaction by 0.5% per second per failed train
-            gameManager.passengerSatisfaction = Math.max(0, gameManager.passengerSatisfaction - 0.5 * dt);
+            // Drain passenger satisfaction by 0.5% per second per failed train (reduced by announcements / PIDS)
+            let decayFactor = 1.0;
+            if (gameManager.isAnnouncementActive) {
+                decayFactor *= 0.25;
+            } else if (gameManager.automatedPIDS) {
+                decayFactor *= 0.50;
+            }
+            gameManager.passengerSatisfaction = Math.max(0, gameManager.passengerSatisfaction - 0.5 * dt * decayFactor);
         }
 
         // Apply capacity upgrade if active

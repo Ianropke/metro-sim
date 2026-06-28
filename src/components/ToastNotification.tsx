@@ -55,7 +55,7 @@ const ToastItem: React.FC<{ toast: Toast; onRemove: (id: string) => void }> = ({
             case 'ERROR': return 'border-rose-500/50 bg-rose-950/90';
             case 'WARNING': return 'border-amber-500/50 bg-amber-950/90';
             case 'SUCCESS': return 'border-emerald-500/50 bg-emerald-950/90';
-            default: return 'border-blue-500/50 bg-slate-900/90';
+            default: return 'border-blue-500/50 bg-slate-900/90 backdrop-blur-md';
         }
     };
 
@@ -71,7 +71,7 @@ const ToastItem: React.FC<{ toast: Toast; onRemove: (id: string) => void }> = ({
             <div className="mt-0.5 shrink-0">{getIcon()}</div>
             <div className="flex-1">
                 <h4 className="font-bold text-sm text-white">{toast.title}</h4>
-                <p className="text-xs text-slate-300 mt-1">{toast.message}</p>
+                <p className="text-sm text-slate-300 mt-1">{toast.message}</p>
             </div>
             <button
                 onClick={() => { setIsVisible(false); setTimeout(() => onRemove(toast.id), 300); }}

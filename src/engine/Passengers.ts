@@ -1,7 +1,7 @@
 export class PassengerGenerator {
     // Poisson Process Parameters
     // Base arrival rate
-    private baseRate: number = 0.2; // passengers per second
+    private baseRate: number = 0.05; // passengers per second
 
     /**
      * Calculates the arrival rate multiplier based on the time of day.
