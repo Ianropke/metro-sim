@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Stage, Container, Graphics, Text } from '@pixi/react';
 import { TextStyle } from 'pixi.js';
-import { AlertTriangle, Shield, User, Hammer, Users } from 'lucide-react';
+import { AlertTriangle, Hammer, Users } from 'lucide-react';
 
 interface TopologicalMapProps {
     trains: { 
@@ -40,10 +40,6 @@ interface TopologicalMapProps {
         stewardTravelTime?: number;
         stewardRepairTime?: number;
     }[];
-    onResolveAnomaly?: (anomalyId: string) => void;
-    stewardsCount?: number;
-    stewardsBusy?: number;
-    maintenanceStrategy?: 'REACTIVE' | 'PREVENTIVE' | 'CONDITIONAL' | 'PREDICTIVE';
 }
 
 export const TopologicalMap: React.FC<TopologicalMapProps> = ({ 
@@ -52,11 +48,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
     moneyPopups, 
     onTrainClick, 
     isRouteExtended, 
-    anomalies,
-    onResolveAnomaly,
-    stewardsCount = 1,
-    stewardsBusy = 0,
-    maintenanceStrategy = 'REACTIVE'
+    anomalies
 }) => {
     const [dimensions, setDimensions] = useState({
         width: Math.max(window.innerWidth - 600, 100),
@@ -64,7 +56,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
     });
 
     const [hoveredTrainId, setHoveredTrainId] = useState<string | null>(null);
-    const [isHoveringCard, setIsHoveringCard] = useState(false);
+    const [animationNow, setAnimationNow] = useState(0);
     const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleTrainPointerOver = (id: string) => {
@@ -89,11 +81,9 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
             clearTimeout(hideTimeoutRef.current);
             hideTimeoutRef.current = null;
         }
-        setIsHoveringCard(true);
     };
 
     const handleCardMouseLeave = () => {
-        setIsHoveringCard(false);
         setHoveredTrainId(null);
     };
 
@@ -114,6 +104,16 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        let animationFrameId: number;
+        const updateAnimationClock = () => {
+            setAnimationNow(Date.now());
+            animationFrameId = requestAnimationFrame(updateAnimationClock);
+        };
+        animationFrameId = requestAnimationFrame(updateAnimationClock);
+        return () => cancelAnimationFrame(animationFrameId);
     }, []);
 
     // Drag-to-pan handlers
@@ -180,24 +180,6 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
         fontWeight: '900' as const
     });
 
-    const trainLabelStyle = (isManual: boolean) => ({
-        fontFamily: 'Inter, system-ui, sans-serif',
-        fontSize: 12,
-        fill: isManual ? '#c084fc' : '#ffffff',
-        fontWeight: '900' as const,
-        stroke: '#0f172a',
-        strokeThickness: 4
-    });
-
-    const trainStateStyle = (state: string) => ({
-        fontFamily: 'Inter, system-ui, sans-serif',
-        fontSize: 10,
-        fill: state === 'EMERGENCY' ? '#f43f5e' : state === 'DWELL' ? '#f59e0b' : state === 'RESTRICTED_MANUAL' ? '#c084fc' : '#3b82f6',
-        fontWeight: '900' as const,
-        stroke: '#0f172a',
-        strokeThickness: 3
-    });
-
     return (
         <div 
             className="relative w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing"
@@ -216,7 +198,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
                         // Track wear breakdown animation helper
                         const trackAnomaly = anomalies ? anomalies.find(a => a.trainId === 'TRACK') : null;
                         const hasTrackAnomaly = !!trackAnomaly;
-                        const isTrackBlinking = hasTrackAnomaly && Math.sin(Date.now() / 150) > 0;
+                        const isTrackBlinking = hasTrackAnomaly && Math.sin(animationNow / 150) > 0;
                         const eastTrackColor = isTrackBlinking ? 0xef4444 : 0x2563eb;
                         const westTrackColor = isTrackBlinking ? 0xef4444 : 0x059669;
 
@@ -266,7 +248,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
                         const invScale = 1 / zoom;
 
                         // Dynamic passenger load halo configuration
-                        const phase = (Date.now() % 1500) / 1500;
+                        const phase = (animationNow % 1500) / 1500;
                         let haloColor = 0x10b981; // green
                         let nodeOutlineColor = 0x3b82f6; // blue
                         if (isLocked) {
@@ -357,8 +339,6 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
                         // Check for anomalies on this train
                         const trainAnoms = anomalies ? anomalies.filter(a => a.trainId === train.id) : [];
                         const hasFailure = trainAnoms.some(a => a.failed);
-                        const hasWarning = trainAnoms.some(a => !a.failed && a.detected);
-                        const blink = Math.sin(Date.now() / 150) > 0;
                         const invScale = 1 / zoom;
                         
                         return (
@@ -366,11 +346,11 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
                                 key={train.id}
                                 x={x}
                                 y={y}
-                                interactive={true as any}
+                                interactive={true}
                                 pointerdown={() => onTrainClick(train.id)}
                                 pointerover={() => handleTrainPointerOver(train.id)}
                                 pointerout={handleTrainPointerOut}
-                                cursor={"pointer" as any}
+                                cursor="pointer"
                             >
                                 <Container scale={{ x: invScale, y: invScale }}>
                                     {/* Open doors glow indicator */}
@@ -388,7 +368,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
                                     {train.state === 'DWELL' && (
                                         <Container>
                                             {[...Array(3)].map((_, idx) => {
-                                                const phase = ((Date.now() / 1000) + idx * 0.33) % 1.0;
+                                                const phase = ((animationNow / 1000) + idx * 0.33) % 1.0;
                                                 const startY = centerY - y; // distance relative to train height
                                                 const particleY = startY + (0 - startY) * phase;
                                                 
@@ -411,7 +391,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
                                     {(train.state === 'EMERGENCY' || hasFailure) && (
                                         <Graphics draw={(g) => {
                                             g.clear();
-                                            const pulseAlpha = Math.sin(Date.now() / 150) * 0.15 + 0.25;
+                                            const pulseAlpha = Math.sin(animationNow / 150) * 0.15 + 0.25;
                                             g.lineStyle(2, 0xef4444, 0.8);
                                             g.beginFill(0xef4444, pulseAlpha);
                                             g.drawCircle(0, 0, 38);
@@ -429,7 +409,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
                                         let borderThickness = 2;
                                         
                                         if (hasFailure) {
-                                            const pulse = Math.sin(Date.now() / 150) * 0.5 + 0.5;
+                                            const pulse = Math.sin(animationNow / 150) * 0.5 + 0.5;
                                             color = pulse > 0.5 ? 0xef4444 : 0xb91c1c; // Pulsing red body
                                             borderColor = 0xfc8181;
                                             borderThickness = 3 + Math.floor(pulse * 3); // Pulsing border thickness
@@ -477,8 +457,7 @@ export const TopologicalMap: React.FC<TopologicalMapProps> = ({
 
                     {/* 4. Floating Money Popups */}
                     {moneyPopups.map(popup => {
-                        const now = Date.now();
-                        const elapsed = now - popup.timestamp;
+                        const elapsed = animationNow - popup.timestamp;
                         const progress = Math.min(1.0, elapsed / 2000);
                         const x = startX + (popup.x / 5000) * usableWidth;
                         const y = (centerY - 20) - (progress * 50); // Float up 50 pixels

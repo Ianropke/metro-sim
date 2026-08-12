@@ -3,9 +3,10 @@ import { TopologicalMap } from './TopologicalMap';
 import { TrainDetails } from './TrainDetails';
 import { UpgradeShop } from './UpgradeShop';
 import { DataDashboard } from './DataDashboard';
-import { AlertTriangle, Users, Database, DollarSign, Menu, TrendingUp, Smile, Train, MessageSquare, Microscope, Plus, Square, CheckSquare, Brain, Clock, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, DollarSign, TrendingUp, Train, MessageSquare, Microscope, Square, CheckSquare, Brain } from 'lucide-react';
 import { type Toast, ToastContainer } from './ToastNotification';
 import { Advisor } from './Advisor';
+import { OPERATING_COSTS, REPAIR_COSTS, UPGRADE_COSTS } from '../engine/GameConfig';
 
 
 interface TrainStateProps {
@@ -110,7 +111,6 @@ interface ControlRoomProps {
     onSetManualCommands?: (trainId: string, throttle: number, brake: number) => void;
     onPurchaseUpgrade?: (upgradeId: string, cost: number) => void;
     onEmergencyTrigger?: () => void;
-    onScenarioTrigger?: (scenarioId: string) => void;
     onSetStrategy?: (strategy: 'REACTIVE' | 'PREVENTIVE' | 'CONDITIONAL' | 'PREDICTIVE') => void;
     onResolveAnomaly?: (anomalyId: string) => void;
     onDeployTrain?: (trainId: string) => void;
@@ -136,7 +136,6 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
     onSetManualCommands,
     onPurchaseUpgrade,
     onEmergencyTrigger,
-    onScenarioTrigger,
     onSetStrategy,
     onResolveAnomaly,
     onDeployTrain,
@@ -178,22 +177,25 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
 
     // Convert Game Events to Toasts & Accumulate History
     useEffect(() => {
+        let historyTimer: ReturnType<typeof setTimeout> | null = null;
         if (game.events.length > 0) {
-            setEventHistory(prev => {
-                const updated = [...prev];
-                let changed = false;
-                game.events.forEach(evt => {
-                    if (!updated.some(e => e.id === evt.id)) {
-                        updated.push(evt);
-                        changed = true;
+            historyTimer = setTimeout(() => {
+                setEventHistory(prev => {
+                    const updated = [...prev];
+                    let changed = false;
+                    game.events.forEach(evt => {
+                        if (!updated.some(e => e.id === evt.id)) {
+                            updated.push(evt);
+                            changed = true;
+                        }
+                    });
+                    let sorted = changed ? updated.sort((a, b) => b.timestamp - a.timestamp) : prev;
+                    if (sorted.length > 100) {
+                        sorted = sorted.slice(0, 100);
                     }
+                    return sorted;
                 });
-                let sorted = changed ? updated.sort((a, b) => b.timestamp - a.timestamp) : prev;
-                if (sorted.length > 100) {
-                    sorted = sorted.slice(0, 100);
-                }
-                return sorted;
-            });
+            }, 0);
 
             const latestEvent = game.events[game.events.length - 1];
             if (lastEventIdRef.current !== latestEvent.id) {
@@ -219,6 +221,9 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                 }
             }
         }
+        return () => {
+            if (historyTimer) clearTimeout(historyTimer);
+        };
     }, [game.events, addToast]);
 
     const selectedTrain = trains.find(t => t.id === selectedTrainId);
@@ -323,7 +328,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             title: 'Infrastruktur-fejl lammer linjen!',
             type: 'CRITICAL',
             cause: 'Skinnerne er slidt ned til 0% tilstand. Ingen tog kan køre, hvilket skaber massive perronkøer og kritisk fald i tilfredshed.',
-            action: 'Klik på "Udfør sporvedligeholdelse ($400)" under Infrastruktur til venstre med det samme.',
+            action: `Klik på "Udfør sporvedligeholdelse ($${OPERATING_COSTS.trackMaintenance})" under Infrastruktur til venstre med det samme.`,
             icon: '🚨'
         });
     }
@@ -337,7 +342,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             title: 'Tip: Automatiser Steward-kald',
             type: 'TIP',
             cause: 'Du sender i øjeblikket ledige stewards manuelt under driftsstop, hvilket kan være langsomt og stressende.',
-            action: 'Åbn OPGRADERINGER & INDKØB i bunden og køb "Automatisk Steward-kald" ($500) for at sende dem afsted automatisk.',
+            action: `Åbn OPGRADERINGER & INDKØB i bunden og køb "Automatisk Steward-kald" ($${UPGRADE_COSTS.AUTO_STEWARD_CALL}) for at sende dem afsted automatisk.`,
             icon: '💡'
         });
     }
@@ -349,7 +354,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             title: 'Mangler ledige Stewards!',
             type: 'WARNING',
             cause: 'Du har aktive togfejl, men alle dine stewards er optaget af andre nødreparationer.',
-            action: 'Åbn "FLÅDE & INDKØB" i bunden og hyr en ekstra Steward ($1.000) for at kunne udbedre fejl parallelt.',
+            action: `Åbn "FLÅDE & INDKØB" i bunden og hyr en ekstra Steward ($${UPGRADE_COSTS.HIRE_STEWARD.toLocaleString()}) for at kunne udbedre fejl parallelt.`,
             icon: '👥'
         });
     }
@@ -361,7 +366,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             title: `Skinner er slidte (${Math.round(100 - game.trackWear)}% tilstand)`,
             type: 'WARNING',
             cause: 'Ved 0% opstår sporskiftefejl, og alle tog stopper, hvilket trækker tilfredsheden hurtigt ned.',
-            action: 'Klik på "Slib Skinner & Vedligehold ($400)" i panelet til venstre, eller hyr en Baneingeniør i butikken.',
+            action: `Klik på "Slib Skinner & Vedligehold ($${OPERATING_COSTS.trackMaintenance})" i panelet til venstre, eller hyr en Baneingeniør i butikken.`,
             icon: '🛠️'
         });
     }
@@ -375,7 +380,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                 title: `Høj slitage på ${id} (${Math.round(game.trainWear[id])}%)`,
                 type: 'WARNING',
                 cause: 'Tog med over 70% slid risikerer akutte dør- eller motorfejl, hvilket udløser driftsstop og driftsbøder.',
-                action: `Vælg toget på kortet/højre panel og udfør "Eftersyn ($150)" for at nulstille slid til 0%.`,
+                action: `Vælg toget på kortet/højre panel og udfør "Eftersyn ($${OPERATING_COSTS.trainMaintenance})" for at nulstille slid til 0%.`,
                 icon: '⚠️'
             });
         }
@@ -389,7 +394,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             title: `Overfyldte perroner: ${crowdedStationsList.map(s => s.name).join(', ')}`,
             type: 'WARNING',
             cause: `Der venter ${totalWaiting} passagerer i alt. Køer dræner tilfredsheden med -${(totalWaiting * 0.0004 * decayFactor * 100).toFixed(2)}%/s!`,
-            action: 'Køb et ekstra tog i butikken for at øge afgangsfrekvensen, eller opgrader med "Stationspersonale" ($2.050) for hurtigere indstigning.',
+            action: `Køb et ekstra tog i butikken for at øge afgangsfrekvensen, eller opgrader med "Stationspersonale" ($${UPGRADE_COSTS.CROWD_CONTROL.toLocaleString()}) for hurtigere indstigning.`,
             icon: '👥'
         });
     } else if (totalWaiting > 100) {
@@ -409,7 +414,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
             id: 'reactive_strategy',
             title: 'Kører Reaktiv Vedligeholdelse',
             type: 'TIP',
-            cause: 'Reaktive reparationer koster $800, giver $1000 i driftsbøder og advarer dig ikke på forhånd.',
+            cause: `Reaktive reparationer koster $${REPAIR_COSTS.PREVENTIVE}, giver $400 i driftsbøder og advarer dig ikke på forhånd.`,
             action: 'Åbn Forskningscentret i bunden og forsk i "Fast Interval" eller "Tilstandsbaseret" vedligeholdelse.',
             icon: '💡'
         });
@@ -439,10 +444,6 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                     onTrainClick={(id) => setSelectedTrainId(id)}
                     isRouteExtended={game.activeUpgrades?.has('ROUTE_EXTENSION_1') || false}
                     anomalies={anomalies}
-                    onResolveAnomaly={onResolveAnomaly}
-                    stewardsCount={game.stewardsCount}
-                    stewardsBusy={game.stewardsBusy}
-                    maintenanceStrategy={game.maintenanceStrategy}
                 />
 
                 {/* Floating Advisor / Tutorial Overlay at the top-center of the map */}
@@ -725,7 +726,7 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
 
                             {(game.tutorialStep ?? 0) >= 5 && (
                                 <div className="flex flex-col gap-2">
-                                    {game.milestones && game.milestones.filter((ms: any) => !ms.reached).slice(0, 1).map((ms: any) => (
+                                    {game.milestones && game.milestones.filter(ms => !ms.reached).slice(0, 1).map(ms => (
                                         <div key={ms.id} className="flex items-start gap-2 leading-relaxed">
                                             <Square size={15} className="text-slate-400 shrink-0 mt-0.5" />
                                             <span className="text-slate-200">
@@ -820,18 +821,18 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                             <div className="group relative w-full">
                                 <button
                                     onClick={() => {
-                                        if (game.budget >= 400 && onPerformTrackMaintenance) {
+                                        if (game.budget >= OPERATING_COSTS.trackMaintenance && onPerformTrackMaintenance) {
                                             onPerformTrackMaintenance();
                                         }
                                     }}
-                                    disabled={game.budget < 400}
+                                    disabled={game.budget < OPERATING_COSTS.trackMaintenance}
                                     className={`w-full py-1.5 rounded-xl text-sm font-bold transition-all shadow-md mt-1 flex items-center justify-center gap-1 ${
-                                        game.budget < 400
+                                        game.budget < OPERATING_COSTS.trackMaintenance
                                         ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
                                         : 'bg-orange-600 hover:bg-orange-500 text-white active:scale-95'
                                     }`}
                                 >
-                                    🔧 Slib Skinner & Vedligehold ($400)
+                                    {`🔧 Slib Skinner & Vedligehold ($${OPERATING_COSTS.trackMaintenance})`}
                                 </button>
                                 <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 w-64 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 delay-500 bg-slate-950/95 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl z-50 text-sm text-slate-200 leading-relaxed">
                                     <div className="font-bold text-orange-400 mb-1">🔧 SKINNESLIBNING</div>
@@ -868,8 +869,8 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                                         }
                                     }}
                                     onDeploy={() => {
-                                        if (game.budget < 500) {
-                                            addToast({ id: 'err', type: 'ERROR', title: 'Utilstrækkelige Midler', message: 'Det koster $500 at indsætte et tog.' });
+                                        if (game.budget < OPERATING_COSTS.trainDeployment) {
+                                            addToast({ id: 'err', type: 'ERROR', title: 'Utilstrækkelige Midler', message: `Det koster $${OPERATING_COSTS.trainDeployment} at indsætte et tog.` });
                                             return;
                                         }
                                         if (onDeployTrain) onDeployTrain(selectedTrain.id);
@@ -894,6 +895,21 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                             👥 DRIFT & UDVIKLING
                         </div>
                         <div className="flex flex-col gap-2.5 text-slate-350">
+                            {fleet && (
+                                <div className="grid grid-cols-4 gap-1.5 border-b border-white/5 pb-2">
+                                    {[
+                                        ['Tog', fleet.total, 'text-slate-200'],
+                                        ['I drift', fleet.active, 'text-emerald-400'],
+                                        ['Depot', fleet.depot, 'text-blue-400'],
+                                        ['Fejl', fleet.broken, 'text-rose-400'],
+                                    ].map(([label, value, color]) => (
+                                        <div key={label} className="rounded-lg bg-slate-950/60 p-1.5 text-center">
+                                            <div className={`font-mono font-black ${color}`}>{value}</div>
+                                            <div className="text-[9px] uppercase text-slate-500">{label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             {/* Stewards count progress bar */}
                             <div className="flex flex-col gap-1">
                                 <div className="flex justify-between items-center text-sm">
@@ -960,12 +976,12 @@ export const ControlRoom: React.FC<ControlRoomProps> = ({
                                     className={`w-full py-1.5 rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer ${
                                         game.isAnnouncementActive
                                         ? 'bg-blue-900/40 text-blue-400 border border-blue-800/40 cursor-not-allowed'
-                                        : game.budget < 50
+                                        : game.budget < OPERATING_COSTS.announcement
                                             ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
                                             : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-450/30 active:scale-95'
                                     }`}
                                 >
-                                    📢 Manuel Udkald ($25)
+                                    {`📢 Manuel Udkald ($${OPERATING_COSTS.announcement})`}
                                 </button>
                                 <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 w-64 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 bg-slate-950/95 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl z-50 text-sm text-slate-200 leading-relaxed">
                                     <div className="font-bold text-blue-400 mb-1">📢 MANUELT UDKALD</div>

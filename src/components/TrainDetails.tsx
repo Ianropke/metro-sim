@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Train, X, ShieldAlert, Zap, AlertCircle, Compass } from 'lucide-react';
+import { OPERATING_COSTS, REPAIR_COSTS } from '../engine/GameConfig';
 
 interface TrainDetailsProps {
     train: { 
@@ -164,7 +165,7 @@ export const TrainDetails: React.FC<TrainDetailsProps> = ({
                                 style={{ width: `${wearPct}%` }}
                             ></div>
                         </div>
-                        {true && (
+                        {onPerformTrainMaintenance && (
                             <button
                                 onClick={() => {
                                     if (onPerformTrainMaintenance) {
@@ -173,7 +174,7 @@ export const TrainDetails: React.FC<TrainDetailsProps> = ({
                                 }}
                                 className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold text-[12px] py-1 px-2 rounded-lg mt-1 transition-all active:scale-95 flex items-center justify-center gap-1 shadow"
                             >
-                                🔧 Udfør Eftersyn ($150)
+                                🔧 Udfør Eftersyn (${OPERATING_COSTS.trainMaintenance})
                             </button>
                         )}
                     </div>
@@ -260,7 +261,13 @@ export const TrainDetails: React.FC<TrainDetailsProps> = ({
             {anomalies && anomalies.length > 0 && (
                 <div className="border-t border-rose-900/30 pt-3 flex flex-col gap-2">
                     {anomalies.map(a => {
-                        const cost = a.failed ? 200 : (maintenanceStrategy === 'PREDICTIVE' ? 100 : (maintenanceStrategy === 'CONDITIONAL' ? 150 : 200));
+                        const cost = a.failed
+                            ? OPERATING_COSTS.stewardRepair
+                            : maintenanceStrategy === 'PREDICTIVE'
+                                ? REPAIR_COSTS.PREDICTIVE
+                                : maintenanceStrategy === 'CONDITIONAL'
+                                    ? REPAIR_COSTS.CONDITIONAL
+                                    : REPAIR_COSTS.PREVENTIVE;
                         const availableStewards = (stewardsCount ?? 1) - (stewardsBusy ?? 0);
                         return (
                             <div key={a.id} className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3 flex flex-col gap-2">
@@ -316,7 +323,7 @@ export const TrainDetails: React.FC<TrainDetailsProps> = ({
                                         }`}
                                     >
                                         {a.failed
-                                            ? (availableStewards <= 0 ? 'INGEN LEDIGE STEWARDS' : 'SEND STEWARD ($800)')
+                                            ? (availableStewards <= 0 ? 'INGEN LEDIGE STEWARDS' : `SEND STEWARD ($${OPERATING_COSTS.stewardRepair})`)
                                             : `REPARER ($${cost})`
                                         }
                                     </button>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Microscope, Server, Activity, Brain, ShieldAlert, Cpu } from 'lucide-react';
+import { OPERATING_COSTS, REPAIR_COSTS, RESEARCH_CONFIG, STRATEGY_FAILURE_FINES, STRATEGY_HOURLY_COSTS } from '../engine/GameConfig';
 
 
 interface DataDashboardProps {
@@ -130,7 +131,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                         )}
                         {currentStrategy === 'PREDICTIVE' && (
                             <div className="text-[12px] text-green-400/80 leading-relaxed">
-                                Live LSTM + XGBoost model er AKTIV. Systemet scanner live telemetri, forudsiger RUL (Remaining Useful Life) og guider dig til tidlig, billig vedligeholdelse ($100 vs $800).
+                                Live LSTM + XGBoost model er AKTIV. Systemet scanner live telemetri, forudsiger RUL (Remaining Useful Life) og guider dig til tidlig, billig vedligeholdelse (${REPAIR_COSTS.PREDICTIVE} vs ${OPERATING_COSTS.stewardRepair}).
                             </div>
                         )}
                     </div>
@@ -142,20 +143,20 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                         </div>
                         <div className="flex flex-col gap-2 text-[12px] leading-relaxed text-slate-400">
                             <div className="flex justify-between items-start border-b border-slate-800/50 pb-1.5">
-                                <span className="text-rose-450 font-bold">REACTIVE ($0/t)</span>
-                                <span className="text-slate-400 text-right">Reparation: $800<br/>Bøde v. fejl: $1.000<br/>Ingen advarsel</span>
+                                <span className="text-rose-450 font-bold">REACTIVE (${STRATEGY_HOURLY_COSTS.REACTIVE}/t)</span>
+                                <span className="text-slate-400 text-right">Reparation: ${OPERATING_COSTS.stewardRepair}<br/>Bøde v. fejl: ${STRATEGY_FAILURE_FINES.REACTIVE}<br/>Ingen advarsel</span>
                             </div>
                             <div className="flex justify-between items-start border-b border-slate-800/50 pb-1.5">
-                                <span className="text-yellow-500 font-bold">PREVENTIVE ($400/t)</span>
-                                <span className="text-slate-400 text-right">-60% fejlrate<br/>Reparation: $800<br/>Ingen bøder</span>
+                                <span className="text-yellow-500 font-bold">PREVENTIVE (${STRATEGY_HOURLY_COSTS.PREVENTIVE}/t)</span>
+                                <span className="text-slate-400 text-right">-60% fejlrate<br/>Reparation: ${REPAIR_COSTS.PREVENTIVE}<br/>Ingen bøder</span>
                             </div>
                             <div className="flex justify-between items-start border-b border-slate-800/50 pb-1.5">
-                                <span className="text-orange-450 font-bold">CONDITIONAL ($600/t)</span>
-                                <span className="text-slate-400 text-right">Reparation: $250<br/>Bøde v. fejl: $500<br/>Tærskel-advarsel</span>
+                                <span className="text-orange-450 font-bold">CONDITIONAL (${STRATEGY_HOURLY_COSTS.CONDITIONAL}/t)</span>
+                                <span className="text-slate-400 text-right">Reparation: ${REPAIR_COSTS.CONDITIONAL}<br/>Bøde v. fejl: ${STRATEGY_FAILURE_FINES.CONDITIONAL}<br/>Tærskel-advarsel</span>
                             </div>
                             <div className="flex justify-between items-start">
-                                <span className="text-emerald-450 font-bold">PREDICTIVE ($800/t)</span>
-                                <span className="text-slate-400 text-right">Prædiktiv rep.: $100<br/>Fejlbøder undgås<br/>RUL-forudsigelse</span>
+                                <span className="text-emerald-450 font-bold">PREDICTIVE (${STRATEGY_HOURLY_COSTS.PREDICTIVE}/t)</span>
+                                <span className="text-slate-400 text-right">Prædiktiv rep.: ${REPAIR_COSTS.PREDICTIVE}<br/>Fejlbøder undgås<br/>RUL-forudsigelse</span>
                             </div>
                         </div>
                     </div>
@@ -237,7 +238,13 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                             anomalies.filter(a => a.detected).map(anom => {
                                 const rulMinutes = Math.max(0, Math.floor((1.0 - anom.severity) / 0.04));
                                 const probability = Math.round(anom.severity * 100);
-                                const cost = anom.failed ? 800 : (currentStrategy === 'PREDICTIVE' ? 100 : (currentStrategy === 'CONDITIONAL' ? 250 : 300));
+                                const cost = anom.failed
+                                    ? OPERATING_COSTS.stewardRepair
+                                    : currentStrategy === 'PREDICTIVE'
+                                        ? REPAIR_COSTS.PREDICTIVE
+                                        : currentStrategy === 'CONDITIONAL'
+                                            ? REPAIR_COSTS.CONDITIONAL
+                                            : REPAIR_COSTS.PREVENTIVE;
 
                                 return (
                                     <div key={anom.id} className={`p-3 rounded-xl border flex flex-col gap-2 ${
@@ -334,7 +341,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                                 }`}
                                             >
                                                 {anom.failed 
-                                                    ? ((stewardsCount ?? 1) - (stewardsBusy ?? 0) <= 0 ? 'INGEN LEDIGE STEWARDS' : 'SEND STEWARD ($800)') 
+                                                    ? ((stewardsCount ?? 1) - (stewardsBusy ?? 0) <= 0 ? 'INGEN LEDIGE STEWARDS' : `SEND STEWARD ($${OPERATING_COSTS.stewardRepair})`)
                                                     : `REPARER ($${cost})`
                                                 }
                                             </button>
@@ -403,7 +410,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                 </div>
                                 <span className="text-[9px] bg-slate-800 text-slate-450 px-1 py-0.5 rounded font-black">LÅST OP</span>
                             </div>
-                            <p className="text-[12px] text-slate-400 leading-normal min-h-[30px]">Nødreparationer efter driftsstop. Høj risiko for bøder ($1.000) og standsede tog.</p>
+                            <p className="text-[12px] text-slate-400 leading-normal min-h-[30px]">Nødreparationer efter driftsstop. Høj risiko for bøder (${STRATEGY_FAILURE_FINES.REACTIVE}) og standsede tog.</p>
                             <button
                                 onClick={() => onSetStrategy && onSetStrategy('REACTIVE')}
                                 disabled={currentStrategy === 'REACTIVE' || (tutorialStep !== undefined && tutorialStep < 3)}
@@ -427,7 +434,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <span className="text-sm font-bold text-slate-200">2. Fast Interval</span>
-                                            <div className="text-[9px] text-slate-400 uppercase mt-0.5 font-bold">Pris: $400/t</div>
+                                    <div className="text-[9px] text-slate-400 uppercase mt-0.5 font-bold">Pris: ${STRATEGY_HOURLY_COSTS.PREVENTIVE}/t</div>
                                         </div>
                                         <span className={`text-[9px] px-1 py-0.5 rounded font-black ${
                                             isUnlocked ? 'bg-slate-800 text-slate-450' : isResearching ? 'bg-blue-950 text-blue-400 animate-pulse' : 'bg-red-950 text-red-400'
@@ -435,7 +442,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                             {isUnlocked ? 'LÅST OP' : isResearching ? 'FORSKER' : 'LÅST'}
                                         </span>
                                     </div>
-                                    <p className="text-[12px] text-slate-400 leading-normal min-h-[30px]">Forebyggende vedligehold. Sænker fejlrate med 60%. Reparer for $800, ingen bøde.</p>
+                                    <p className="text-[12px] text-slate-400 leading-normal min-h-[30px]">Forebyggende vedligehold. Sænker fejlrate med 60%. Reparer for ${REPAIR_COSTS.PREVENTIVE}, ingen bøde.</p>
                                     {isUnlocked ? (
                                         <button
                                             onClick={() => onSetStrategy && onSetStrategy('PREVENTIVE')}
@@ -450,7 +457,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={() => onStartResearch && onStartResearch('PREVENTIVE', 1000)}
+                                            onClick={() => onStartResearch && onStartResearch('PREVENTIVE', RESEARCH_CONFIG.PREVENTIVE.cost)}
                                             disabled={!canResearch}
                                             className={`w-full py-1.5 rounded text-[12px] font-bold border transition-colors ${
                                                 isResearching
@@ -458,7 +465,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                                 : 'bg-blue-600 border-blue-500 hover:bg-blue-500 text-white disabled:bg-slate-850 disabled:border-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed'
                                             }`}
                                         >
-                                            {isResearching ? 'FORSKER...' : 'FORSK ($1.000, 60s)'}
+                                            {isResearching ? 'FORSKER...' : `FORSK ($${RESEARCH_CONFIG.PREVENTIVE.cost.toLocaleString()}, ${RESEARCH_CONFIG.PREVENTIVE.duration}s)`}
                                         </button>
                                     )}
                                 </div>
@@ -476,7 +483,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <span className="text-sm font-bold text-slate-200">3. Konditionel</span>
-                                            <div className="text-[9px] text-slate-400 uppercase mt-0.5 font-bold">Pris: $600/t</div>
+                                            <div className="text-[9px] text-slate-400 uppercase mt-0.5 font-bold">Pris: ${STRATEGY_HOURLY_COSTS.CONDITIONAL}/t</div>
                                         </div>
                                         <span className={`text-[9px] px-1 py-0.5 rounded font-black ${
                                             isUnlocked ? 'bg-slate-800 text-slate-450' : isResearching ? 'bg-blue-950 text-blue-400 animate-pulse' : 'bg-red-950 text-red-400'
@@ -484,7 +491,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                             {isUnlocked ? 'LÅST OP' : isResearching ? 'FORSKER' : 'LÅST'}
                                         </span>
                                     </div>
-                                    <p className="text-[12px] text-slate-400 leading-normal min-h-[30px]">Fejl opdages ved tærskel (60%, 40% el. 20% m. sensorer). Reparer for $250, $500 bøde.</p>
+                                    <p className="text-[12px] text-slate-400 leading-normal min-h-[30px]">Fejl opdages ved tærskel (60%, 40% el. 20% m. sensorer). Reparer for ${REPAIR_COSTS.CONDITIONAL}, ${STRATEGY_FAILURE_FINES.CONDITIONAL} bøde.</p>
                                     {isUnlocked ? (
                                         <button
                                             onClick={() => onSetStrategy && onSetStrategy('CONDITIONAL')}
@@ -499,7 +506,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={() => onStartResearch && onStartResearch('CONDITIONAL', 2500)}
+                                            onClick={() => onStartResearch && onStartResearch('CONDITIONAL', RESEARCH_CONFIG.CONDITIONAL.cost)}
                                             disabled={!canResearch}
                                             title={!isPrevUnlocked ? "Kræver Forebyggende (Fast Interval) vedligeholdelse låst op først" : undefined}
                                             className={`w-full py-1.5 rounded text-[12px] font-bold border transition-colors ${
@@ -508,7 +515,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                                 : 'bg-blue-600 border-blue-500 hover:bg-blue-500 text-white disabled:bg-slate-850 disabled:border-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed'
                                             }`}
                                         >
-                                            {isResearching ? 'FORSKER...' : 'FORSK ($2.500, 120s)'}
+                                            {isResearching ? 'FORSKER...' : `FORSK ($${RESEARCH_CONFIG.CONDITIONAL.cost.toLocaleString()}, ${RESEARCH_CONFIG.CONDITIONAL.duration}s)`}
                                         </button>
                                     )}
                                 </div>
@@ -526,7 +533,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <span className="text-sm font-bold text-slate-200">4. Prædiktiv</span>
-                                            <div className="text-[9px] text-slate-400 uppercase mt-0.5 font-bold">Pris: $800/t</div>
+                                            <div className="text-[9px] text-slate-400 uppercase mt-0.5 font-bold">Pris: ${STRATEGY_HOURLY_COSTS.PREDICTIVE}/t</div>
                                         </div>
                                         <span className={`text-[9px] px-1 py-0.5 rounded font-black ${
                                             isUnlocked ? 'bg-slate-800 text-slate-450' : isResearching ? 'bg-blue-950 text-blue-400 animate-pulse' : 'bg-red-950 text-red-400'
@@ -534,7 +541,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                             {isUnlocked ? 'LÅST OP' : isResearching ? 'FORSKER' : 'LÅST'}
                                         </span>
                                     </div>
-                                    <p className="text-[12px] text-slate-400 leading-normal min-h-[30px]">ML forudsiger RUL live. Advarsler fra 0% severity. Prædiktiv rep: $100, ingen bøde.</p>
+                                    <p className="text-[12px] text-slate-400 leading-normal min-h-[30px]">ML forudsiger RUL live. Advarsler fra 0% severity. Prædiktiv rep: ${REPAIR_COSTS.PREDICTIVE}, ingen bøde.</p>
                                     {isUnlocked ? (
                                         <button
                                             onClick={() => onSetStrategy && onSetStrategy('PREDICTIVE')}
@@ -549,7 +556,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={() => onStartResearch && onStartResearch('PREDICTIVE', 5000)}
+                                            onClick={() => onStartResearch && onStartResearch('PREDICTIVE', RESEARCH_CONFIG.PREDICTIVE.cost)}
                                             disabled={!canResearch}
                                             title={!isCondUnlocked ? "Kræver Tilstandsbaseret (Konditionel) vedligeholdelse låst op først" : undefined}
                                             className={`w-full py-1.5 rounded text-[12px] font-bold border transition-colors ${
@@ -558,7 +565,7 @@ export const DataDashboard: React.FC<DataDashboardProps> = ({
                                                 : 'bg-blue-600 border-blue-500 hover:bg-blue-500 text-white disabled:bg-slate-850 disabled:border-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed'
                                             }`}
                                         >
-                                            {isResearching ? 'FORSKER...' : 'FORSK ($5.000, 180s)'}
+                                            {isResearching ? 'FORSKER...' : `FORSK ($${RESEARCH_CONFIG.PREDICTIVE.cost.toLocaleString()}, ${RESEARCH_CONFIG.PREDICTIVE.duration}s)`}
                                         </button>
                                     )}
                                 </div>

@@ -1,22 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ControlRoom } from './components/ControlRoom';
 import { SimulationLoop } from './engine/SimulationLoop';
 import { WelcomeModal } from './components/WelcomeModal';
 import { EndGameModal } from './components/EndGameModal';
 import { MilestonePopup } from './components/MilestonePopup';
+import { OPERATING_COSTS } from './engine/GameConfig';
 
 function App() {
   const [sim, setSim] = useState(() => new SimulationLoop());
+  const simRef = useRef(sim);
   const [simState, setSimState] = useState(() => sim.getState());
   const [showWelcome, setShowWelcome] = useState(true);
 
   const handleRestart = () => {
     const newSim = new SimulationLoop();
+    simRef.current = newSim;
     setSim(newSim);
     setSimState(newSim.getState());
   };
 
   useEffect(() => {
+    const currentSim = simRef.current;
     let lastTime = performance.now();
     let animationFrameId: number;
 
@@ -26,17 +30,17 @@ function App() {
       lastTime = timestamp;
       
       // Stop ticking if game is over
-      if (sim.gameManager.gameStatus === 'PLAYING') {
-        const timeScale = sim.gameManager.timeScale ?? 2;
+      if (currentSim.gameManager.gameStatus === 'PLAYING') {
+        const timeScale = currentSim.gameManager.timeScale ?? 2;
         let speedMultiplier = 10;
         if (timeScale === 0) speedMultiplier = 0;
         else if (timeScale === 1) speedMultiplier = 5;
         else if (timeScale === 2) speedMultiplier = 10;
         else if (timeScale === 3) speedMultiplier = 20;
 
-        sim.tick(dt, speedMultiplier);
+        currentSim.tick(dt, speedMultiplier);
       }
-      setSimState(sim.getState());
+      setSimState(currentSim.getState());
 
       animationFrameId = requestAnimationFrame(gameLoop);
     };
@@ -65,7 +69,7 @@ function App() {
           name={simState.game.activeMilestonePopup.name}
           reward={simState.game.activeMilestonePopup.reward}
           description={simState.game.activeMilestonePopup.description}
-          onDismiss={() => sim.gameManager.dismissMilestonePopup()}
+          onDismiss={() => simRef.current.gameManager.dismissMilestonePopup()}
         />
       )}
 
@@ -79,29 +83,26 @@ function App() {
         game={simState.game}
         fleet={simState.fleet}
         onSetTimeScale={(scale) => {
-          sim.gameManager.timeScale = scale;
+          simRef.current.gameManager.timeScale = scale;
         }}
-        onEmergencyTrigger={() => sim.triggerEmergency()}
+        onEmergencyTrigger={() => simRef.current.triggerEmergency()}
         onBroadcastAnnouncement={() => {
-          sim.gameManager.broadcastAnnouncement();
+          simRef.current.gameManager.broadcastAnnouncement();
         }}
         onPurchaseUpgrade={(id, cost) => {
-          sim.gameManager.purchaseUpgrade(id, cost);
-        }}
-        onScenarioTrigger={(scenario) => {
-          sim.setScenario(scenario as 'DEFAULT' | 'MORNING_RUSH');
+          simRef.current.gameManager.purchaseUpgrade(id, cost);
         }}
         onResolveAnomaly={(id) => {
-          sim.gameManager.resolveAnomaly(id);
+          simRef.current.gameManager.resolveAnomaly(id);
         }}
         onSetStrategy={(strategy) => {
-          sim.gameManager.setMaintenanceStrategy(strategy as 'REACTIVE' | 'PREVENTIVE' | 'CONDITIONAL' | 'PREDICTIVE');
+          simRef.current.gameManager.setMaintenanceStrategy(strategy as 'REACTIVE' | 'PREVENTIVE' | 'CONDITIONAL' | 'PREDICTIVE');
         }}
         onStartResearch={(strategy, cost) => {
-          sim.gameManager.startResearch(strategy, cost);
+          simRef.current.gameManager.startResearch(strategy, cost);
         }}
         onSetManualOverride={(trainId, isManual) => {
-          const train = sim.trains.find(t => t.id === trainId);
+          const train = simRef.current.trains.find(t => t.id === trainId);
           if (train) {
             train.isManualOverride = isManual;
             train.manualThrottle = 0;
@@ -115,25 +116,25 @@ function App() {
           }
         }}
         onSetManualCommands={(trainId, throttle, brake) => {
-          const train = sim.trains.find(t => t.id === trainId);
+          const train = simRef.current.trains.find(t => t.id === trainId);
           if (train) {
             train.manualThrottle = throttle;
             train.manualBrake = brake;
           }
         }}
         onDeployTrain={(trainId) => {
-          const train = sim.trains.find(t => t.id === trainId);
-          if (train && train.stateMachine.currentState === 'DEPOT' && sim.gameManager.budget >= 500) {
-            const isSpawnBlocked = sim.trains.some(t => t.stateMachine.currentState !== 'DEPOT' && t.physics.position < 300);
+          const train = simRef.current.trains.find(t => t.id === trainId);
+          if (train && train.stateMachine.currentState === 'DEPOT' && simRef.current.gameManager.budget >= OPERATING_COSTS.trainDeployment) {
+            const isSpawnBlocked = simRef.current.trains.some(t => t.stateMachine.currentState !== 'DEPOT' && t.physics.position < 300);
             if (!isSpawnBlocked) {
-              sim.gameManager.applyPenalty(500); // Cost to deploy
+              simRef.current.gameManager.applyPenalty(OPERATING_COSTS.trainDeployment);
               train.stateMachine.transitionTo('AUTO_DRIVE');
               // Assuming it's already at 0, direction 1.
             }
           }
         }}
         onReturnToDepot={(trainId) => {
-          const train = sim.trains.find(t => t.id === trainId);
+          const train = simRef.current.trains.find(t => t.id === trainId);
           if (train) {
             train.isReturningToDepot = true;
             if (train.stateMachine.currentState !== 'DWELL') {
@@ -142,23 +143,23 @@ function App() {
           }
         }}
         onResetEmergency={(trainId) => {
-          const train = sim.trains.find(t => t.id === trainId);
+          const train = simRef.current.trains.find(t => t.id === trainId);
           if (train) {
             train.isEmergencyBrake = false;
             train.stateMachine.transitionTo('AUTO_DRIVE');
           }
         }}
         onPerformTrainMaintenance={(trainId) => {
-          sim.gameManager.performTrainMaintenance(trainId);
+          simRef.current.gameManager.performTrainMaintenance(trainId);
         }}
         onPerformTrackMaintenance={() => {
-          sim.gameManager.performTrackMaintenance();
+          simRef.current.gameManager.performTrackMaintenance();
         }}
         onStartTicketInspection={() => {
-          sim.gameManager.startTicketInspection();
+          simRef.current.gameManager.startTicketInspection();
         }}
         onStartDataAudit={() => {
-          sim.gameManager.startDataAudit();
+          simRef.current.gameManager.startDataAudit();
         }}
       />
     </div>

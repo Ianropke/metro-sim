@@ -1,3 +1,18 @@
+import {
+    OPERATING_COSTS,
+    REPAIR_COSTS,
+    RESEARCH_CONFIG,
+    STRATEGY_FAILURE_FINES,
+    STRATEGY_HOURLY_COSTS,
+    getUpgradeCost,
+} from './GameConfig';
+
+type TrainStateSource = {
+    id: string;
+    state?: string;
+    stateMachine?: { currentState: string };
+};
+
 export class GameManager {
     public passengerSatisfaction: number = 100.0; // 0-100%
     public energyEfficiency: number = 100.0; // 0-100%
@@ -67,79 +82,83 @@ export class GameManager {
     // Active Upgrades Set
     public activeUpgrades: Set<string> = new Set();
 
-    public purchaseUpgrade(id: string, cost: number): boolean {
-        if (this.budget >= cost) {
-            if (id === 'BUY_TRAIN') {
-                this.budget -= cost;
-                this.activeUpgrades.add(id);
-                if (this.tutorialStep === 1) this.tutorialStep = 2;
-                return true;
-            }
-            if (id === 'HIRE_STEWARD') {
-                this.budget -= cost;
-                this.stewardsCount += 1;
-                return true;
-            }
-            if (id === 'TRAIN_STEWARDS') {
-                this.budget -= cost;
-                this.stewardTrainingLevel = Math.min(3, this.stewardTrainingLevel + 1);
-                return true;
-            }
-            if (id === 'AUTOMATED_PIDS') {
-                this.budget -= cost;
-                this.automatedPIDS = true;
-                this.activeUpgrades.add(id); // track it
-                return true;
-            }
-            if (id === 'SENSOR_UPGRADE') {
-                this.budget -= cost;
-                this.sensorLevel = Math.min(3, this.sensorLevel + 1);
-                return true;
-            }
-            if (id === 'HIRE_ANALYST') {
-                this.budget -= cost;
-                this.dataAnalystsCount += 1;
-                return true;
-            }
-            if (id === 'HIRE_INSPECTOR') {
-                this.budget -= cost;
-                this.inspectorsCount += 1;
-                return true;
-            }
-            if (id === 'HIRE_ENGINEER') {
-                this.budget -= cost;
-                this.engineersCount += 1;
-                return true;
-            }
-            if (id === 'BUY_ARIIS') {
-                this.budget -= cost;
-                this.hasARIIS = true;
-                this.activeUpgrades.add(id);
-                return true;
-            }
-            if (id === 'BUY_TRES') {
-                this.budget -= cost;
-                this.hasTRES = true;
-                this.activeUpgrades.add(id);
-                return true;
-            }
-            if (id === 'STEWARD_SPECIAL_TRAINING') {
-                this.budget -= cost;
-                this.stewardSpecialTraining = true;
-                this.activeUpgrades.add(id);
-                return true;
-            }
-            if (id === 'AUTO_STEWARD_CALL') {
-                this.budget -= cost;
-                this.autoStewardCall = true;
-                this.activeUpgrades.add(id);
-                return true;
-            }
-            if (!this.activeUpgrades.has(id)) {
-                this.budget -= cost;
-                this.activeUpgrades.add(id);
-                return true;
-            }
+    public purchaseUpgrade(id: string, _requestedCost?: number): boolean {
+        void _requestedCost;
+        const cost = getUpgradeCost(id);
+        if (cost === undefined || this.budget < cost) {
+            return false;
+        }
+
+        if (id === 'BUY_TRAIN') {
+            this.budget -= cost;
+            this.activeUpgrades.add(id);
+            if (this.tutorialStep === 1) this.tutorialStep = 2;
+            return true;
+        }
+        if (id === 'HIRE_STEWARD') {
+            this.budget -= cost;
+            this.stewardsCount += 1;
+            return true;
+        }
+        if (id === 'TRAIN_STEWARDS') {
+            this.budget -= cost;
+            this.stewardTrainingLevel = Math.min(3, this.stewardTrainingLevel + 1);
+            return true;
+        }
+        if (id === 'AUTOMATED_PIDS') {
+            this.budget -= cost;
+            this.automatedPIDS = true;
+            this.activeUpgrades.add(id); // track it
+            return true;
+        }
+        if (id === 'SENSOR_UPGRADE') {
+            this.budget -= cost;
+            this.sensorLevel = Math.min(3, this.sensorLevel + 1);
+            return true;
+        }
+        if (id === 'HIRE_ANALYST') {
+            this.budget -= cost;
+            this.dataAnalystsCount += 1;
+            return true;
+        }
+        if (id === 'HIRE_INSPECTOR') {
+            this.budget -= cost;
+            this.inspectorsCount += 1;
+            return true;
+        }
+        if (id === 'HIRE_ENGINEER') {
+            this.budget -= cost;
+            this.engineersCount += 1;
+            return true;
+        }
+        if (id === 'BUY_ARIIS') {
+            this.budget -= cost;
+            this.hasARIIS = true;
+            this.activeUpgrades.add(id);
+            return true;
+        }
+        if (id === 'BUY_TRES') {
+            this.budget -= cost;
+            this.hasTRES = true;
+            this.activeUpgrades.add(id);
+            return true;
+        }
+        if (id === 'STEWARD_SPECIAL_TRAINING') {
+            this.budget -= cost;
+            this.stewardSpecialTraining = true;
+            this.activeUpgrades.add(id);
+            return true;
+        }
+        if (id === 'AUTO_STEWARD_CALL') {
+            this.budget -= cost;
+            this.autoStewardCall = true;
+            this.activeUpgrades.add(id);
+            return true;
+        }
+        if (!this.activeUpgrades.has(id)) {
+            this.budget -= cost;
+            this.activeUpgrades.add(id);
+            return true;
         }
         return false;
     }
@@ -171,10 +190,7 @@ export class GameManager {
         this.budget -= engineerWages;
 
         // Active Strategy Cost (per game-hour)
-        let strategyRate = 0;
-        if (this.maintenanceStrategy === 'PREVENTIVE') strategyRate = 400;
-        else if (this.maintenanceStrategy === 'CONDITIONAL') strategyRate = 600;
-        else if (this.maintenanceStrategy === 'PREDICTIVE') strategyRate = 800;
+        const strategyRate = STRATEGY_HOURLY_COSTS[this.maintenanceStrategy];
         this.budget -= strategyRate * (gameMinutes / 60); // rate per hour, so divide gameMinutes by 60 to get hours
 
         // Ticket inspection campaign timer countdown
@@ -280,9 +296,8 @@ export class GameManager {
     }
 
     public broadcastAnnouncement(): boolean {
-        // Broadcast delay details. Costs $50.
-        if (this.budget >= 25) {
-            this.budget -= 25;
+        if (this.budget >= OPERATING_COSTS.announcement) {
+            this.budget -= OPERATING_COSTS.announcement;
             this.isAnnouncementActive = true;
             this.announcementTimer = 15.0; // 15 game-seconds of broadcast duration
             this.triggerEvent('INFO', 'Højtalerudkald: Passagerer informeres om forsinkelsen. Tilfredsheden falder langsommere!', 'INFO');
@@ -404,9 +419,10 @@ export class GameManager {
         }
     }
 
-    public startResearch(strategy: 'PREVENTIVE' | 'CONDITIONAL' | 'PREDICTIVE', cost: number): boolean {
-        let actualCost = cost;
-        let actualDuration = strategy === 'PREVENTIVE' ? 60.0 : strategy === 'CONDITIONAL' ? 120.0 : 180.0;
+    public startResearch(strategy: 'PREVENTIVE' | 'CONDITIONAL' | 'PREDICTIVE', _requestedCost?: number): boolean {
+        void _requestedCost;
+        let actualCost: number = RESEARCH_CONFIG[strategy].cost;
+        let actualDuration: number = RESEARCH_CONFIG[strategy].duration;
         
         if (this.tutorialStep === 4 && strategy === 'PREVENTIVE') {
             actualCost = 100;
@@ -429,7 +445,7 @@ export class GameManager {
         return false;
     }
 
-    public checkForAnomalies(dt: number, trains: { id: string }[]) {
+    public checkForAnomalies(dt: number, trains: TrainStateSource[]) {
         // --- TUTORIAL LOGIC (REWORKED: Positive-first flow) ---
         // Step 0: Watch & earn — just wait for first passenger delivery
         if (this.tutorialStep === 0) {
@@ -538,7 +554,7 @@ export class GameManager {
         if (this.tutorialStep >= 5) {
             // Update Train Wear for active trains
             trains.forEach(t => {
-                const stateStr = (t as any).state || (t as any).stateMachine?.currentState;
+                const stateStr = t.state || t.stateMachine?.currentState;
                 if (stateStr !== 'DEPOT') {
                     const currentWear = this.trainWear[t.id] || 0;
                     // Reaches 100% in ~250000 game seconds (~70 game hours, or ~70 real minutes)
@@ -568,7 +584,7 @@ export class GameManager {
 
             // Update Track Wear
             const activeTrainsCount = trains.filter(t => {
-                const stateStr = (t as any).state || (t as any).stateMachine?.currentState;
+                const stateStr = t.state || t.stateMachine?.currentState;
                 return stateStr !== 'DEPOT';
             }).length;
 
@@ -631,9 +647,7 @@ export class GameManager {
                     this.triggerEvent('FAILURE', `Kritisk fejl: ${anom.component} på ${anom.trainId}. Send en Steward i DATA dashboardet under 'Gold Layer'!`, 'NØDSTOP');
                     
                     // Fine depending on strategy
-                    let fine = 400; // Reduced from 1000 — failures are annoying, not catastrophic
-                    if (this.maintenanceStrategy === 'PREDICTIVE') fine = 0;
-                    else if (this.maintenanceStrategy === 'CONDITIONAL') fine = 500;
+                    const fine = STRATEGY_FAILURE_FINES[this.maintenanceStrategy];
                     
                     if (fine > 0) {
                         this.applyPenalty(fine);
@@ -675,7 +689,7 @@ export class GameManager {
                 anomaly.stewardTravelTime = travel;
                 anomaly.stewardRepairTime = repair;
 
-                this.budget -= 200; // Deduct reactive repair cost
+                this.budget -= OPERATING_COSTS.stewardRepair;
                 this.triggerEvent('INFO', `Steward afsendt til tog ${anomaly.trainId} for at udbedre ${anomaly.component}.`, 'INFO');
                 return true;
             }
@@ -703,12 +717,7 @@ export class GameManager {
             // Predictive early repair is instant
             this.anomalies = this.anomalies.filter(a => a.id !== id);
             this.resetWearForAnomaly(anomaly.trainId);
-            let cost = 200;
-            if (this.maintenanceStrategy === 'PREDICTIVE') {
-                cost = 100;
-            } else if (this.maintenanceStrategy === 'CONDITIONAL') {
-                cost = 150;
-            }
+            const cost = REPAIR_COSTS[this.maintenanceStrategy === 'REACTIVE' ? 'PREVENTIVE' : this.maintenanceStrategy];
             this.budget -= cost;
             this.dataLakeSavings += (800 - cost) + 1000;
 
@@ -734,8 +743,8 @@ export class GameManager {
     }
 
     public performTrainMaintenance(trainId: string): boolean {
-        if (this.budget >= 150) {
-            this.budget -= 150;
+        if (this.budget >= OPERATING_COSTS.trainMaintenance) {
+            this.budget -= OPERATING_COSTS.trainMaintenance;
             this.trainWear[trainId] = 0;
             this.triggerEvent('INFO', `Eftersyn gennemført på tog ${trainId}. Slitage nulstillet.`, 'VEDLIGEHOLDELSE');
             if (this.tutorialStep === 2 && trainId === 'TRN01') {
@@ -747,8 +756,8 @@ export class GameManager {
     }
 
     public performTrackMaintenance(): boolean {
-        if (this.budget >= 400) {
-            this.budget -= 400;
+        if (this.budget >= OPERATING_COSTS.trackMaintenance) {
+            this.budget -= OPERATING_COSTS.trackMaintenance;
             this.trackWear = 0;
             
             // Also resolve track failure anomaly if it exists!
@@ -766,8 +775,8 @@ export class GameManager {
     }
 
     public startTicketInspection(): boolean {
-        if (this.budget >= 100 && this.ticketInspectionTimer <= 0) {
-            this.budget -= 100;
+        if (this.budget >= OPERATING_COSTS.ticketInspection && this.ticketInspectionTimer <= 0) {
+            this.budget -= OPERATING_COSTS.ticketInspection;
             this.ticketInspectionTimer = 1800; // 30 game minutes (30 real seconds at speedMultiplier=60)
             this.triggerEvent('INFO', `Manuel billetkontrol startet på hele linjen i 30 min.`, 'BILLETKONTROL');
             return true;

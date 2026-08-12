@@ -151,7 +151,7 @@ function runPlaythrough(runId: number) {
         totalPassengers: loop.gameManager.totalPassengersTransported,
         trainsCount: loop.trains.length,
         maintenanceStrategy: loop.gameManager.maintenanceStrategy,
-        failuresCount: (loop.gameManager as any).totalFailuresCount || 0
+        failuresCount: loop.gameManager.totalFailuresCount || 0
     };
 }
 

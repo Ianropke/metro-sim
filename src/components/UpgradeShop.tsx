@@ -1,5 +1,6 @@
 import React from 'react';
-import { ShoppingCart, Zap, Timer, Users, Gauge, PlusCircle, Train, Map, Award, MessageSquare, Cpu, Activity, Eye, ShieldCheck, BookOpen } from 'lucide-react';
+import { Zap, Timer, Users, Gauge, PlusCircle, Train, Map, Award, MessageSquare, Cpu, Activity, Eye, ShieldCheck, BookOpen } from 'lucide-react';
+import { OPERATING_COSTS, UPGRADE_COSTS } from '../engine/GameConfig';
 
 interface UpgradeShopProps {
     budget: number;
@@ -43,24 +44,24 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
     onStartTicketInspection
 }) => {
     const upgrades = [
-        { id: 'ROUTE_EXTENSION_1', name: 'Ruteudvidelse: Forum -> Nørreport', description: 'Lås op for de sidste 2 stationer på linjen. Øger passagerpotentialet markant.', cost: 15000, icon: Map },
-        { id: 'REGEN_BRAKING', name: 'Regen Bremser Mk II', description: 'Genvind op til 85% of bremseenergien for at sænke el-omkostninger.', cost: 5000, icon: Zap },
-        { id: 'FAST_DOORS', name: 'Hurtige Døre', description: 'Reducerer dørtid på stationerne fra 6s til 3s.', cost: 3000, icon: Timer },
-        { id: 'CROWD_CONTROL', name: 'Stationspersonale', description: 'Reducerer passagerers ind- og udstigningstid med 66%.', cost: 2000, icon: Users },
-        { id: 'MOTOR_UPGRADE', name: 'Trakionsmotor Opgradering', description: 'Øger tophastigheden fra 80 km/t til 100 km/t.', cost: 4000, icon: Gauge },
-        { id: 'CAPACITY_UPGRADE', name: '4-Vogns Forlængelse', description: 'Øger togenes kapacitet fra 200 til 350 passagerer.', cost: 6000, icon: PlusCircle },
-        { id: 'BUY_TRAIN', name: 'Køb Nyt Tog', description: 'Indsæt et ekstra førerløst tog for at øge frekvensen.', cost: 8000, icon: Train },
-        { id: 'HIRE_STEWARD', name: 'Hyr Metro Steward', description: 'Hyr personale til at afhjælpe nødstop og berolige passagerer.', cost: 1000, icon: Users },
-        { id: 'TRAIN_STEWARDS', name: 'Stewards: Certificering', description: 'Uddan stewards til at rejse og reparere 33% hurtigere.', cost: 2500, icon: Award },
-        { id: 'HIRE_INSPECTOR', name: 'Hyr Billetkontrollør', description: 'Foretager løbende billetkontrol i baggrunden for at fange snyltere.', cost: 800, icon: Users },
-        { id: 'HIRE_ENGINEER', name: 'Hyr Baneingeniør', description: 'Arbejder kontinuerligt på skinnerne for at modvirke og reparere slitage.', cost: 1200, icon: ShieldCheck },
-        { id: 'AUTOMATED_PIDS', name: 'Automatiseret PIDS', description: 'Dynamiske perron-displays. Fjerner 50% af vrede under forsinkelser.', cost: 2000, icon: MessageSquare },
-        { id: 'SENSOR_UPGRADE', name: 'Avancerede IoT-sensorer', description: 'Maks Lvl 3. Forbedrer Konditionel strategi ved at opdage fejl tidligere.', cost: 2000, icon: Cpu },
-        { id: 'HIRE_ANALYST', name: 'Ansæt Dataanalytiker', description: 'Maks 3. Dataanalytikere fremskynder din F&U hastighed med 30%.', cost: 1500, icon: Activity },
-        { id: 'BUY_ARIIS', name: 'ARIIS Infrastruktur-scanner', description: 'Overvåger skinner og signaler. Sænker tilfældige uheld og glitches med 60%.', cost: 3500, icon: ShieldCheck },
-        { id: 'BUY_TRES', name: 'TRES Telemetrisystem', description: 'Giver basale anomali-advarsler i DATA selv under Reaktiv strategi.', cost: 4000, icon: Eye },
-        { id: 'AUTO_STEWARD_CALL', name: 'Automatisk Steward-kald', description: 'Udsender automatisk ledige stewards til nødstop.', cost: 500, icon: ShieldCheck },
-        { id: 'STEWARD_SPECIAL_TRAINING', name: 'Steward Specialuddannelse', description: 'Giver stewards 25% hurtigere rejse- og nødreparationstid.', cost: 3000, icon: BookOpen }
+        { id: 'ROUTE_EXTENSION_1', name: 'Ruteudvidelse: Forum -> Nørreport', description: 'Lås op for de sidste 2 stationer på linjen. Øger passagerpotentialet markant.', cost: UPGRADE_COSTS.ROUTE_EXTENSION_1, icon: Map },
+        { id: 'REGEN_BRAKING', name: 'Regen Bremser Mk II', description: 'Genvind op til 85% of bremseenergien for at sænke el-omkostninger.', cost: UPGRADE_COSTS.REGEN_BRAKING, icon: Zap },
+        { id: 'FAST_DOORS', name: 'Hurtige Døre', description: 'Reducerer dørtid på stationerne fra 6s til 3s.', cost: UPGRADE_COSTS.FAST_DOORS, icon: Timer },
+        { id: 'CROWD_CONTROL', name: 'Stationspersonale', description: 'Reducerer passagerers ind- og udstigningstid med 66%.', cost: UPGRADE_COSTS.CROWD_CONTROL, icon: Users },
+        { id: 'MOTOR_UPGRADE', name: 'Trakionsmotor Opgradering', description: 'Øger tophastigheden fra 80 km/t til 100 km/t.', cost: UPGRADE_COSTS.MOTOR_UPGRADE, icon: Gauge },
+        { id: 'CAPACITY_UPGRADE', name: '4-Vogns Forlængelse', description: 'Øger togenes kapacitet fra 200 til 350 passagerer.', cost: UPGRADE_COSTS.CAPACITY_UPGRADE, icon: PlusCircle },
+        { id: 'BUY_TRAIN', name: 'Køb Nyt Tog', description: 'Indsæt et ekstra førerløst tog for at øge frekvensen.', cost: UPGRADE_COSTS.BUY_TRAIN, icon: Train },
+        { id: 'HIRE_STEWARD', name: 'Hyr Metro Steward', description: 'Hyr personale til at afhjælpe nødstop og berolige passagerer.', cost: UPGRADE_COSTS.HIRE_STEWARD, icon: Users },
+        { id: 'TRAIN_STEWARDS', name: 'Stewards: Certificering', description: 'Uddan stewards til at rejse og reparere 33% hurtigere.', cost: UPGRADE_COSTS.TRAIN_STEWARDS, icon: Award },
+        { id: 'HIRE_INSPECTOR', name: 'Hyr Billetkontrollør', description: 'Foretager løbende billetkontrol i baggrunden for at fange snyltere.', cost: UPGRADE_COSTS.HIRE_INSPECTOR, icon: Users },
+        { id: 'HIRE_ENGINEER', name: 'Hyr Baneingeniør', description: 'Arbejder kontinuerligt på skinnerne for at modvirke og reparere slitage.', cost: UPGRADE_COSTS.HIRE_ENGINEER, icon: ShieldCheck },
+        { id: 'AUTOMATED_PIDS', name: 'Automatiseret PIDS', description: 'Dynamiske perron-displays. Fjerner 50% af vrede under forsinkelser.', cost: UPGRADE_COSTS.AUTOMATED_PIDS, icon: MessageSquare },
+        { id: 'SENSOR_UPGRADE', name: 'Avancerede IoT-sensorer', description: 'Maks Lvl 3. Forbedrer Konditionel strategi ved at opdage fejl tidligere.', cost: UPGRADE_COSTS.SENSOR_UPGRADE, icon: Cpu },
+        { id: 'HIRE_ANALYST', name: 'Ansæt Dataanalytiker', description: 'Maks 3. Dataanalytikere fremskynder din F&U hastighed med 30%.', cost: UPGRADE_COSTS.HIRE_ANALYST, icon: Activity },
+        { id: 'BUY_ARIIS', name: 'ARIIS Infrastruktur-scanner', description: 'Overvåger skinner og signaler. Sænker tilfældige uheld og glitches med 60%.', cost: UPGRADE_COSTS.BUY_ARIIS, icon: ShieldCheck },
+        { id: 'BUY_TRES', name: 'TRES Telemetrisystem', description: 'Giver basale anomali-advarsler i DATA selv under Reaktiv strategi.', cost: UPGRADE_COSTS.BUY_TRES, icon: Eye },
+        { id: 'AUTO_STEWARD_CALL', name: 'Automatisk Steward-kald', description: 'Udsender automatisk ledige stewards til nødstop.', cost: UPGRADE_COSTS.AUTO_STEWARD_CALL, icon: ShieldCheck },
+        { id: 'STEWARD_SPECIAL_TRAINING', name: 'Steward Specialuddannelse', description: 'Giver stewards 25% hurtigere rejse- og nødreparationstid.', cost: UPGRADE_COSTS.STEWARD_SPECIAL_TRAINING, icon: BookOpen }
     ];
 
     return (
@@ -85,19 +86,19 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
                         <div className="flex flex-col items-end">
                             <button
                                 onClick={() => {
-                                    if (budget >= 100 && ticketInspectionTimer <= 0) {
+                                    if (budget >= OPERATING_COSTS.ticketInspection && ticketInspectionTimer <= 0) {
                                         onStartTicketInspection();
                                     }
                                 }}
-                                disabled={budget < 100 || ticketInspectionTimer > 0}
+                                disabled={budget < OPERATING_COSTS.ticketInspection || ticketInspectionTimer > 0}
                                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-1 ${
-                                    (budget < 100 || ticketInspectionTimer > 0)
+                                    (budget < OPERATING_COSTS.ticketInspection || ticketInspectionTimer > 0)
                                     ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
                                     : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
                                 }`}
                                 title="Igangsætter en 30-minutters intensiv kontrolkampagne for at fange snyltere."
                             >
-                                🎫 {ticketInspectionTimer > 0 ? 'Billetkontrol Aktiv' : 'Start Billetkontrol ($100)'}
+                                🎫 {ticketInspectionTimer > 0 ? 'Billetkontrol Aktiv' : `Start Billetkontrol ($${OPERATING_COSTS.ticketInspection})`}
                             </button>
                             {ticketInspectionTimer > 0 && (
                                 <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-white/5 mt-1">

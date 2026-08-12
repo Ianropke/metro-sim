@@ -9,21 +9,22 @@ interface MilestonePopupProps {
 
 export const MilestonePopup: React.FC<MilestonePopupProps> = ({ name, reward, description, onDismiss }) => {
     const [visible, setVisible] = useState(false);
-    const [confetti, setConfetti] = useState<{ id: number; x: number; delay: number; color: string; size: number }[]>([]);
+    const [confetti] = useState(() => {
+        const colors = ['#fbbf24', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fb923c'];
+        return Array.from({ length: 40 }, (_, i) => ({
+            id: i,
+            x: (i * 37) % 100,
+            delay: ((i * 13) % 50) / 100,
+            color: colors[i % colors.length],
+            size: 4 + (i % 5),
+            borderRadius: i % 2 === 0 ? '50%' : '2px',
+            rotation: (i * 47) % 360,
+        }));
+    });
 
     useEffect(() => {
         // Animate in
         setTimeout(() => setVisible(true), 50);
-
-        // Generate confetti particles
-        const particles = Array.from({ length: 40 }, (_, i) => ({
-            id: i,
-            x: Math.random() * 100,
-            delay: Math.random() * 0.5,
-            color: ['#fbbf24', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fb923c'][Math.floor(Math.random() * 6)],
-            size: 4 + Math.random() * 8,
-        }));
-        setConfetti(particles);
 
         // Auto-dismiss after 6 seconds
         const timer = setTimeout(() => {
@@ -48,8 +49,8 @@ export const MilestonePopup: React.FC<MilestonePopupProps> = ({ name, reward, de
                         width: p.size,
                         height: p.size,
                         backgroundColor: p.color,
-                        borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-                        transform: `rotate(${Math.random() * 360}deg)`,
+                        borderRadius: p.borderRadius,
+                        transform: `rotate(${p.rotation}deg)`,
                     }}
                 />
             ))}
