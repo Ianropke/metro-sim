@@ -1,0 +1,44 @@
+version: 1
+project: Ianropke/metro-sim
+owner: Ian Røpke
+currency: DKK
+policy: Ianropke/code-portfolio/RESOURCE_BUDGET_POLICY.md
+canonical_portfolio_register: Ianropke/code-portfolio/PORTFOLIO_BUDGETS.yaml
+
+approval:
+  status: pending_owner_approval
+  approved_by: null
+  approved_at: null
+
+cash_budget:
+  recurring_monthly_dkk: null
+  one_off_dkk: null
+
+quota_budgets:
+  github_actions_execution_month: 0
+  external_api_requests_month: 0
+  ai_tokens_month: 0
+  hosted_compute_storage: null
+
+current_resources: []
+
+pending_policy:
+  existing_configuration_may_continue: true
+  allow_new_paid_services: false
+  allow_paid_overage: false
+  allow_plan_upgrades: false
+  allow_schedule_frequency_increase: false
+  allow_compute_or_storage_scale_up: false
+
+guardrails:
+  warning_threshold_percent: 70
+  constrained_threshold_percent: 90
+  hard_ceiling_percent: 100
+  require_cost_and_quota_estimate_before_resource_change: true
+  require_cheaper_alternatives_review: true
+  require_owner_approval_if_projected_ceiling_exceeded: true
+
+agent_rule: >-
+  Default to local execution. Read this file before adding CI, hosting, a
+  database, external APIs, AI/model calls, telemetry services, or any other
+  metered resource. No new external cost/quota exposure is approved yet.
